@@ -55,6 +55,10 @@ df1["gender"] = df1["gender"].replace({"Female": 1, "Male": 0})
 # Perform one-hot encoding for categorical columns
 df2 = pd.get_dummies(data=df1, columns=["InternetService", "Contract", "PaymentMethod"])
 
+# Convert boolean columns to integers (True -> 1, False -> 0)
+bool_columns = df2.select_dtypes(include="bool").columns
+df2[bool_columns] = df2[bool_columns].astype(int)
+
 # Scale numerical columns
 cols_to_scale = ["tenure", "MonthlyCharges", "TotalCharges"]
 scaler = MinMaxScaler()
