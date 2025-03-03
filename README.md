@@ -16,4 +16,18 @@
 
 ## Project Overview
 
+### **Models Implemented**
+
+- Decision Trees
+- Neural Networks
+- Naive Bayes
+- Genetic Algorithms
+- Graphical Models (Bayesian Networks, HMM)
+
+### **Key Objectives**
+
+- Hands-on experience in implementing multiple ML models.
+- Compare performance and interpretability of different models.
+- Focus on engineering practices, model implementation, and comparative analysis.
+
 ## How to Run the Project
