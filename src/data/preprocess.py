@@ -1,19 +1,13 @@
 import pandas as pd
-from matplotlib import pyplot as plt
-import numpy as np
 import os
 from sklearn.preprocessing import MinMaxScaler
 
 # Test
 # Define the path to the raw data
-raw_data_path = os.path.join(
-    os.path.dirname(__file__), "..", "..", "data", "raw", "raw_data.csv"
-)
+raw_data_path = os.path.join(os.path.dirname(__file__),"..", "..", "data", "raw", "raw_data.csv")
 
 # Define the path to the processed data
-processed_data_path = os.path.join(
-    os.path.dirname(__file__), "..", "..", "data", "processed", "processed_data.csv"
-)
+processed_data_path = os.path.join(os.path.dirname(__file__),"..", "..", "data", "processed", "processed_data.csv")
 
 # Read the CSV file
 df = pd.read_csv(raw_data_path)
@@ -25,44 +19,31 @@ df.drop("customerID", axis="columns", inplace=True)
 pd.to_numeric(df.TotalCharges, errors="coerce").isnull()
 
 # Remove rows with space in TotalCharges
-df1 = df[df.TotalCharges != " "]
-df1.TotalCharges = pd.to_numeric(df1.TotalCharges)
+df = df[df.TotalCharges != " "]
+df.TotalCharges = pd.to_numeric(df.TotalCharges)
 
 # Replace "No internet service" and "No phone service" with "No" in one call
-df1.replace("No internet service", "No", inplace=True)
-df1.replace("No phone service", "No", inplace=True)
+df.replace("No internet service", "No", inplace=True)
+df.replace("No phone service", "No", inplace=True)
+
 
 # Replace "Yes" with 1 and "No" with 0 for all yes/no columns
-yes_no_columns = [
-    "Partner",
-    "Dependents",
-    "PhoneService",
-    "MultipleLines",
-    "OnlineSecurity",
-    "OnlineBackup",
-    "DeviceProtection",
-    "TechSupport",
-    "StreamingTV",
-    "StreamingMovies",
-    "PaperlessBilling",
-    "Churn",
-]
-df1[yes_no_columns] = df1[yes_no_columns].replace({"Yes": 1, "No": 0})
-
-# Replace gender values with 1 for Female, 0 for Male
-df1["gender"] = df1["gender"].replace({"Female": 1, "Male": 0})
-
-# Perform one-hot encoding for categorical columns
-df2 = pd.get_dummies(data=df1, columns=["InternetService", "Contract", "PaymentMethod"])
+yes_no_columns = ["Partner", "Dependents", "PhoneService", "MultipleLines", 
+                  "OnlineSecurity", "OnlineBackup", "DeviceProtection", "TechSupport", 
+                  "StreamingTV", "StreamingMovies", "PaperlessBilling", "Churn"]
+df[yes_no_columns] = df[yes_no_columns].replace({"Yes": 1, "No": 0})
+df["gender"] = df["gender"].replace({"Female": 1, "Male": 0})
+df = pd.get_dummies(df, columns=["InternetService", "Contract", "PaymentMethod"], drop_first=True).astype(int)
 
 # Convert boolean columns to integers (True -> 1, False -> 0)
-bool_columns = df2.select_dtypes(include="bool").columns
-df2[bool_columns] = df2[bool_columns].astype(int)
+bool_columns = df.select_dtypes(include="bool").columns
+df[bool_columns] = df[bool_columns].astype(int)
 
 # Scale numerical columns
-cols_to_scale = ["tenure", "MonthlyCharges", "TotalCharges"]
 scaler = MinMaxScaler()
-df2[cols_to_scale] = scaler.fit_transform(df2[cols_to_scale])
+cols_to_scale = ["tenure", "MonthlyCharges", "TotalCharges"]
+df[cols_to_scale] = scaler.fit_transform(df[cols_to_scale])
 
-# Save the processed data to CSV
-df2.to_csv(processed_data_path, index=False)
+# Save processed data
+df.to_csv(processed_data_path, index=False)
+
