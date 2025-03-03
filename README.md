@@ -30,7 +30,7 @@
 - Compare performance and interpretability of different models.
 - Focus on engineering practices, model implementation, and comparative analysis.
 
-## How to Run the Project
+## Environment Setup
 
 ### Step 1: Create a Virtual Environment
 
@@ -52,7 +52,7 @@ On macOS/Linux
 source env/bin/activate
 ```
 
-Step 3: Install Required Dependencies
+### Step 3: Install Required Dependencies
 
 ````bash
 pip install -r requirements.txt```
