@@ -32,8 +32,28 @@
 
 ## How to Run the Project
 
-### **Step 1: Create a Virtual Environment**
+### Step 1: Create a Virtual Environment
 
 ```bash
 python -m venv env
 ```
+
+### Step 2: Activate the Virtual Environment
+
+On Windows (Command Prompt)
+
+```bash
+env\Scripts\activate
+```
+
+On macOS/Linux
+
+```bash
+source env/bin/activate
+```
+
+Step 3: Install Required Dependencies
+
+````bash
+pip install -r requirements.txt```
+````
