@@ -6,13 +6,13 @@
 
 ## Team Members and Task Distribution
 
-| Name                 | Student ID | Tasks Assigned                                    | Contributions                                                      |
-| -------------------- | ---------- | ------------------------------------------------- | ------------------------------------------------------------------ |
-| Nguyễn Quang Duy     | 2252120    | Overall coordination, documentation, final review | Managed project workflow, reviewed contributions, submitted README |
-| Văn Duy Anh          | 2252045    | Model implementation (e.g., Decision Trees)       | Implemented and tested Decision Trees model                        |
-| Nguyễn Đoàn Hải Băng | 2252078    | Model implementation (e.g., Neural Networks)      | Developed and optimized Neural Networks                            |
-| Trần Vũ Hảo          | 2052978    | Data preprocessing and feature engineering        | Cleaned and transformed Telco Customer Churn dataset               |
-| Đào Tiến Tuấn        | 1953069    | Comparative analysis and evaluation               | Conducted performance analysis of models                           |
+| Name                 | Student ID | Tasks Assigned                                                      | Contributions |
+| -------------------- | ---------- | ------------------------------------------------------------------- | ------------- |
+| Nguyễn Quang Duy     | 2252120    | Model implementation (Neural Networks), documentation, final review | 20%           |
+| Văn Duy Anh          | 2252045    | Model implementation (Naive Bayes)                                  | 20%           |
+| Nguyễn Đoàn Hải Băng | 2252078    | Model implementation (Genetic Algorithms)                           | 20%           |
+| Trần Vũ Hảo          | 2052978    | Model implementation (Decision Trees)                               | 20%           |
+| Đào Tiến Tuấn        | 1953069    | Model implementation (Graphical Models)                             | 20%           |
 
 ## Project Overview
 
