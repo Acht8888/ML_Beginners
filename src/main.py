@@ -4,11 +4,20 @@ import pandas as pd
 import torch
 from sklearn.model_selection import train_test_split
 
-from train_model import train_and_save, tune_hyperparameters, evaluate_model
-from predict_model import predict
-from utils import set_seed, DEFAULT_SEED
+# Importing modules from your project
+from models.train_model import (
+    train_and_save,
+    tune_and_save,
+    evaluate_model,
+)
+from utils import set_seed, DEFAULT_SEED, set_log
 
+
+# Set the random seed for reproducibility
 set_seed()
+
+# Configure logging for better visibility in production
+logger = set_log()
 
 # Define the path to the processed data
 data_path = os.path.join(
@@ -16,7 +25,6 @@ data_path = os.path.join(
 )
 
 
-# Load Data
 def load_data(data_path):
     df = pd.read_csv(data_path)
     X_train, X_test, y_train, y_test = train_test_split(
@@ -65,6 +73,13 @@ def main():
         "--trials", type=int, default=20, help="Number of tuning trials"
     )
 
+    tune_parser.add_argument(
+        "--direction",
+        type=str,
+        default="minimize",
+        help="Minimize for loss optimization, maximize for accuracy",
+    )
+
     # Evaluate Command
     eval_parser = subparsers.add_parser("evaluate", help="Evaluate a trained model")
     eval_parser.add_argument(
@@ -78,6 +93,7 @@ def main():
     X_train, X_test, y_train, y_test = load_data(data_path)
 
     if args.command == "train":
+        logger.info(f"Training model: {args.model_name}")
         train_and_save(
             model_type=args.model_type,
             model_name=args.model_name,
@@ -91,7 +107,8 @@ def main():
             hidden_size=args.hidden_size,
         )
     elif args.command == "tune":
-        tune_hyperparameters(
+        logger.info(f"Tuning hyperparameters for model: {args.model_name}")
+        tune_and_save(
             model_type=args.model_type,
             model_name=args.model_name,
             X_train=X_train,
@@ -99,6 +116,7 @@ def main():
             X_test=X_test,
             y_test=y_test,
             n_trials=args.trials,
+            direction=args.direction,
         )
     elif args.command == "evaluate":
         evaluate_model(
@@ -110,9 +128,10 @@ def main():
         parser.print_help()
 
 
-# python src/models/main.py train --model_type neural_network --model_name neural_network_1 --lr 0.001 --batch_size 64 --epochs 50 --hidden_size 20
-# python src/models/main.py tune --model_type neural_network --model_name neural_network_2 --trials 10
-# python src/models/main.py evaluate --file_name nn_neural_network_1
-# python src/models/main.py predict --model neural_network --input_data data/sample.csv
+# CLI Example:
+# python src/main.py train --model_type neural_network --model_name neural_network_1 --lr 0.001 --batch_size 32 --epochs 20 --hidden_size 15
+# python src/main.py tune --model_type neural_network --model_name neural_network_2 --trials 1 --direction minimize
+# python src/main.py evaluate --file_name nn_neural_network_1
+# python src/main.py predict --model neural_network --input_data data/sample.csv
 if __name__ == "__main__":
     main()

@@ -1,22 +1,20 @@
-import argparse
 import os
-import random
-import numpy as np
-import pandas as pd
-import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
-from sklearn.model_selection import train_test_split, KFold
-from sklearn.metrics import accuracy_score
 import optuna
 from optuna.samplers import TPESampler
+import sys
 
 
-from utils import set_seed, DEFAULT_SEED
+# Importing modules from your project
+from utils import set_seed, DEFAULT_SEED, set_log
 
-
+# Set the random seed for reproducibility
 set_seed()
+
+# Configure logging for better visibility in production
+logger = set_log()
 
 
 class NeuralNetworkModel(nn.Module):
@@ -35,19 +33,17 @@ class NeuralNetworkModel(nn.Module):
         return x
 
 
-def train_nn(
-    model, X_train, y_train, lr=0.001, batch_size=32, epochs=100, hidden_size=15
-):
+def train_nn(X_train, y_train, lr=0.001, batch_size=32, epochs=100, hidden_size=15):
     """
-    Train the neural network with specified hyperparameters.
+    Train a neural network model on the training data.
 
-    Args:
-        model (nn.Module): Neural network model.
-        X_train (Tensor): Training features.
-        y_train (Tensor): Training labels.
-        lr (float): Learning rate.
-        batch_size (int): Batch size.
-        epochs (int): Number of training epochs.
+    :param X_train: Training features (Tensor).
+    :param y_train: Training labels (Tensor).
+    :param lr: Learning rate for the optimizer. Default is 0.001.
+    :param batch_size: Batch size for training. Default is 32.
+    :param epochs: Number of training epochs. Default is 100.
+    :param hidden_size: Number of neurons in the hidden layers. Default is 15.
+    :return: Trained model.
     """
     model = NeuralNetworkModel(hidden_size=hidden_size)
 
@@ -59,6 +55,7 @@ def train_nn(
         shuffle=True,
         num_workers=0,
         worker_init_fn=lambda _: set_seed(DEFAULT_SEED),
+        drop_last=True,
     )
 
     # Loss function and optimizer
@@ -85,25 +82,24 @@ def train_nn(
         # Print average loss for this epoch
         if (epoch + 1) % 10 == 0:
             avg_loss = total_loss / len(train_loader)
-            print(f"Epoch [{epoch + 1}/{epochs}], Loss: {avg_loss:.4f}")
+            logger.info(f"Epoch [{epoch + 1}/{epochs}], Loss: {avg_loss:.4f}")
+
+    return model
 
 
 def train_optuna(X_train, y_train, trial):
     """
-    Train the neural network while optimizing hyperparameters using Optuna.
+    Optimize hyperparameters using Optuna.
 
-    Args:
-        X_train (Tensor): Training features.
-        y_train (Tensor): Training labels.
-        trial (optuna.Trial): Optuna trial object.
-
-    Returns:
-        float: Final training loss.
+    :param X_train: Training features (Tensor).
+    :param y_train: Training labels (Tensor).
+    :param trial: Optuna trial object for hyperparameter tuning.
+    :return: Final loss value after training.
     """
     lr = trial.suggest_float("lr", 1e-4, 1e-1, log=True)
-    batch_size = trial.suggest_int("batch_size", 8, 128)
-    epochs = trial.suggest_int("epochs", 8, 128)
-    hidden_size = trial.suggest_int("hidden_size", 1, 32)
+    batch_size = trial.suggest_int("batch_size", 1, 128)
+    epochs = trial.suggest_int("epochs", 1, 128)
+    hidden_size = trial.suggest_int("hidden_size", 1, 128)
 
     model = NeuralNetworkModel(hidden_size=hidden_size)
 
@@ -115,6 +111,7 @@ def train_optuna(X_train, y_train, trial):
         shuffle=True,
         num_workers=0,
         worker_init_fn=lambda _: set_seed(DEFAULT_SEED),
+        drop_last=True,
     )
 
     # Loss function and optimizer
@@ -131,10 +128,6 @@ def train_optuna(X_train, y_train, trial):
             # Forward pass
             outputs = model(batch_X).squeeze()
 
-            if outputs.dim() != batch_y.dim():
-                outputs = outputs.squeeze()  # Make sure output is 1D
-                batch_y = batch_y.squeeze()  # Ensure target is also 1D
-
             loss = criterion(outputs, batch_y)
 
             # Backward pass and optimization
@@ -146,17 +139,13 @@ def train_optuna(X_train, y_train, trial):
 
 def tune_hyperparameters_nn(X_train, y_train, n_trials=10, direction="minimize"):
     """
-    Run Optuna hyperparameter optimization.
+    Tune hyperparameters of the neural network using Optuna.
 
-    Args:
-        train_func (function): Function to train the model.
-        X_train (Tensor): Training features.
-        y_train (Tensor): Training labels.
-        n_trials (int): Number of tuning trials.
-        direction (str): "minimize" for loss optimization, "maximize" for accuracy.
-
-    Returns:
-        optuna.study.Study: The Optuna study object.
+    :param X_train: Training features (Tensor).
+    :param y_train: Training labels (Tensor).
+    :param n_trials: Number of trials for Optuna optimization. Default is 10.
+    :param direction: Optimization direction ('minimize' or 'maximize'). Default is 'minimize'.
+    :return: Optuna study object and the best hyperparameters.
     """
     sampler = TPESampler(seed=DEFAULT_SEED)
     study = optuna.create_study(
@@ -168,7 +157,7 @@ def tune_hyperparameters_nn(X_train, y_train, n_trials=10, direction="minimize")
         n_trials=n_trials,
     )
 
-    print("Best Hyperparameters:", study.best_params)
+    logger.info("Best Hyperparameters: %s", study.best_params)
 
     best_params = study.best_params
     best_lr = best_params["lr"]
@@ -177,3 +166,8 @@ def tune_hyperparameters_nn(X_train, y_train, n_trials=10, direction="minimize")
     best_hidden_size = best_params["hidden_size"]
 
     return study, best_lr, best_batch_size, best_epochs, best_hidden_size
+
+
+if __name__ == "__main__":
+    src_path = os.path.join(os.path.dirname(__file__), "..")
+    sys.path.append(src_path)
