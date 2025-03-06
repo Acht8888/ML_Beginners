@@ -100,7 +100,7 @@ python src/main.py train --model_type neural_network --model_name neural_network
 #### Example with study mode:
 
 ```bash
-python src/main.py train --model_type neural_network --model_name neural_network_2 --mode study --file_name study_data.json
+python src/main.py train --model_type neural_network --model_name neural_network_2 --mode study --file_name eural_network_2
 ```
 
 ---
@@ -142,7 +142,7 @@ You can visualize the performance of the model using the `visualize` command. Th
 #### Example:
 
 ```bash
-python src/main.py visualize --mode tune --file_name tuning_results.json
+python src/main.py visualize --mode tune --file_name neural_network_2
 ```
 
 #### Arguments:
@@ -163,56 +163,11 @@ The `evaluate` command allows you to evaluate the performance of a trained model
 #### Example:
 
 ```bash
-python src/main.py evaluate --file_name trained_model.json
+python src/main.py evaluate --file_name trained_model
 ```
 
 #### Arguments:
 
 - `--file_name`: The file name of the trained model to evaluate.
-
----
-
-## Additional Commands
-
-You can also run a prediction on a given dataset:
-
-```bash
-python src/main.py predict --model neural_network --input_data data/sample.csv
-```
-
-This will use the trained model to make predictions on the input dataset.
-
----
-
-## CLI Command Examples:
-
-- **Train a neural network manually**:
-
-  ```bash
-  python src/main.py train --model_type neural_network --model_name neural_network_1 --mode manual --lr 0.001 --batch_size 32 --epochs 20 --hidden_size 15
-  ```
-
-- **Train a model using hyperparameters from a study file**:
-
-  ```bash
-  python src/main.py train --model_type neural_network --model_name neural_network_2 --mode study --file_name study_data.json
-  ```
-
-- **Tune hyperparameters for a trained neural network model**:
-
-  ```bash
-  python src/main.py tune --model_type neural_network --model_name neural_network_2 --trials 20 --direction maximize
-  ```
-
-- **Visualize the results of the tuning process**:
-
-  ```bash
-  python src/main.py visualize --mode tune --file_name tuning_results.json
-  ```
-
-- **Evaluate a trained model**:
-  ```bash
-  python src/main.py evaluate --file_name trained_model.json
-  ```
 
 ---
