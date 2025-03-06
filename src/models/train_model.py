@@ -1,14 +1,26 @@
 import os
+import sys
 from sklearn.metrics import accuracy_score
 import optuna
-import matplotlib.pyplot as plt
-import sys
+from optuna.samplers import TPESampler
 
 # Importing modules from your project
-from models.neural_network import NeuralNetworkModel, train_nn, tune_hyperparameters_nn
+from models.neural_network import (
+    NeuralNetworkModel,
+    train_nn,
+    train_nn_optuna,
+)
 from models.predict_model import predict_model, evaluate_model
-from models.utils import save_model, load_model
-from utils import set_seed, DEFAULT_SEED, set_log
+from visualization.visualize import visualize_study
+from utils import (
+    set_seed,
+    DEFAULT_SEED,
+    set_log,
+    save_model,
+    load_model,
+    save_study,
+    load_study,
+)
 
 # Set the random seed for reproducibility
 set_seed()
@@ -31,19 +43,15 @@ def train_and_save(model_type, model_name, X_train, y_train, X_test, y_test, **k
     """
     model = None
 
+    print(f"Training {model_type} with the following hyperparameters:")
+    for key, value in kwargs.items():
+        print(f"{key}: {value}")
+
     # Select the model type and initialize it
     if model_type == "decision_tree":
         pass
-        # Decision Tree code here (not implemented in provided code)
     elif model_type == "neural_network":
-        model = train_nn(
-            X_train=X_train,
-            y_train=y_train,
-            lr=kwargs.get("lr", 0.001),
-            batch_size=kwargs.get("batch_size", 32),
-            epochs=kwargs.get("epochs", 100),
-            hidden_size=kwargs.get("hidden_size", 15),
-        )
+        model = train_nn(X_train=X_train, y_train=y_train, **kwargs)
     elif model_type == "naive_bayes":
         pass
     elif model_type == "genetic_algorithm":
@@ -63,14 +71,7 @@ def train_and_save(model_type, model_name, X_train, y_train, X_test, y_test, **k
 
 
 def tune_and_save(
-    model_type,
-    model_name,
-    X_train,
-    y_train,
-    X_test,
-    y_test,
-    n_trials,
-    direction="minimize",
+    model_type, model_name, X_train, y_train, n_trials, direction="minimize"
 ):
     """
     Tune hyperparameters using Optuna and save the best model.
@@ -84,6 +85,7 @@ def tune_and_save(
     :param n_trials: Number of Optuna trials for hyperparameter tuning
     :param direction: Direction for optimization ('minimize' or 'maximize')
     """
+    study = None
     if direction not in ["minimize", "maximize"]:
         logger.error(f"Direction '{direction}' not recognized!")
         raise ValueError(f"Direction '{direction}' not recognized!")
@@ -92,10 +94,12 @@ def tune_and_save(
     if model_type == "decision_tree":
         pass
     elif model_type == "neural_network":
-        study, best_lr, best_batch_size, best_epochs, best_hidden_size = (
-            tune_hyperparameters_nn(
-                X_train=X_train, y_train=y_train, n_trials=n_trials, direction=direction
-            )
+        study = tune_hyperparameters(
+            model_train_fn=train_nn_optuna,
+            X_train=X_train,
+            y_train=y_train,
+            n_trials=n_trials,
+            direction=direction,
         )
     elif model_type == "naive_bayes":
         pass
@@ -107,34 +111,45 @@ def tune_and_save(
         logger.error(f"Model '{model_type}' not recognized!")
         raise ValueError(f"Model '{model_type}' not recognized!")
 
+    if study:
+        save_study(study, model_type, model_name)
+
+
+def tune_hyperparameters(
+    model_train_fn, X_train, y_train, n_trials=10, direction="minimize"
+):
+    """
+    Tune hyperparameters of the neural network using Optuna.
+
+    :param X_train: Training features (Tensor).
+    :param y_train: Training labels (Tensor).
+    :param n_trials: Number of trials for Optuna optimization. Default is 10.
+    :param direction: Optimization direction ('minimize' or 'maximize'). Default is 'minimize'.
+    :return: Optuna study object and the best hyperparameters.
+    """
+    sampler = TPESampler(seed=DEFAULT_SEED)
+    study = optuna.create_study(
+        direction=direction,
+        sampler=sampler,
+    )
+    study.optimize(
+        lambda trial: model_train_fn(X_train, y_train, trial),
+        n_trials=n_trials,
+    )
+
+    logger.info("Best Hyperparameters: %s", study.best_params)
+
+    return study
+
+
+def train_study_and_save(
+    model_type, model_name, X_train, y_train, X_test, y_test, file_name
+):
+    study = load_study(file_name)
+
     train_and_save(
-        model_type=model_type,
-        model_name=model_name,
-        X_train=X_train,
-        y_train=y_train,
-        X_test=X_test,
-        y_test=y_test,
-        lr=best_lr,
-        batch_size=best_batch_size,
-        epochs=best_epochs,
-        hidden_size=best_hidden_size,
+        model_type, model_name, X_train, y_train, X_test, y_test, **study.best_params
     )
-
-
-def visualize_study(study_name):
-    study = study_name
-
-    optuna.visualization.matplotlib.plot_optimization_history(study)
-
-    plot_filename = os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "..",
-        "storage",
-        "plots",
-        "optimization_history.png",
-    )
-    plt.savefig(plot_filename)
 
 
 if __name__ == "__main__":

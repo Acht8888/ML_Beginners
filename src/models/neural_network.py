@@ -2,8 +2,7 @@ import os
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
-import optuna
-from optuna.samplers import TPESampler
+
 import sys
 
 
@@ -15,6 +14,13 @@ set_seed()
 
 # Configure logging for better visibility in production
 logger = set_log()
+
+search_space = {
+    "lr": [1e-5, 1e-1],  # Log scale for learning rate
+    "batch_size": [32, 128],  # Batch size range
+    "hidden_size": [8, 256],  # Hidden layer size range
+    "epochs": [10, 100],  # Number of epochs range
+}
 
 
 class NeuralNetworkModel(nn.Module):
@@ -87,7 +93,7 @@ def train_nn(X_train, y_train, lr=0.001, batch_size=32, epochs=100, hidden_size=
     return model
 
 
-def train_optuna(X_train, y_train, trial):
+def train_nn_optuna(X_train, y_train, trial):
     """
     Optimize hyperparameters using Optuna.
 
@@ -96,10 +102,16 @@ def train_optuna(X_train, y_train, trial):
     :param trial: Optuna trial object for hyperparameter tuning.
     :return: Final loss value after training.
     """
-    lr = trial.suggest_float("lr", 1e-4, 1e-1, log=True)
-    batch_size = trial.suggest_int("batch_size", 1, 128)
-    epochs = trial.suggest_int("epochs", 1, 128)
-    hidden_size = trial.suggest_int("hidden_size", 1, 128)
+    lr = trial.suggest_float("lr", search_space["lr"][0], search_space["lr"][1])
+    batch_size = trial.suggest_int(
+        "batch_size", search_space["batch_size"][0], search_space["batch_size"][1]
+    )
+    hidden_size = trial.suggest_int(
+        "hidden_size", search_space["hidden_size"][0], search_space["hidden_size"][1]
+    )
+    epochs = trial.suggest_int(
+        "epochs", search_space["epochs"][0], search_space["epochs"][1]
+    )
 
     model = NeuralNetworkModel(hidden_size=hidden_size)
 
@@ -135,37 +147,6 @@ def train_optuna(X_train, y_train, trial):
             optimizer.step()
 
     return loss.item()
-
-
-def tune_hyperparameters_nn(X_train, y_train, n_trials=10, direction="minimize"):
-    """
-    Tune hyperparameters of the neural network using Optuna.
-
-    :param X_train: Training features (Tensor).
-    :param y_train: Training labels (Tensor).
-    :param n_trials: Number of trials for Optuna optimization. Default is 10.
-    :param direction: Optimization direction ('minimize' or 'maximize'). Default is 'minimize'.
-    :return: Optuna study object and the best hyperparameters.
-    """
-    sampler = TPESampler(seed=DEFAULT_SEED)
-    study = optuna.create_study(
-        direction=direction,
-        sampler=sampler,
-    )
-    study.optimize(
-        lambda trial: train_optuna(X_train, y_train, trial),
-        n_trials=n_trials,
-    )
-
-    logger.info("Best Hyperparameters: %s", study.best_params)
-
-    best_params = study.best_params
-    best_lr = best_params["lr"]
-    best_batch_size = best_params["batch_size"]
-    best_epochs = best_params["epochs"]
-    best_hidden_size = best_params["hidden_size"]
-
-    return study, best_lr, best_batch_size, best_epochs, best_hidden_size
 
 
 if __name__ == "__main__":
