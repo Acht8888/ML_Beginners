@@ -10,7 +10,9 @@ from models.neural_network import (
     train_nn,
     train_nn_optuna,
 )
-from models.predict_model import predict_model, evaluate_model
+from models.predict_model import (
+    predict_model,
+)
 from visualization.visualize import visualize_study
 from utils import (
     set_seed,
@@ -64,7 +66,7 @@ def train_and_save(model_type, model_name, X_train, y_train, X_test, y_test, **k
 
     if model:
         # Evaluate and save the model
-        predictions = predict_model(model, X_test)
+        predictions = predict_model(model, X_test, 0.5)
         test_accuracy = accuracy_score(y_test, predictions)
         logger.info(f"Test Accuracy: {test_accuracy:.4f}")
         save_model(model, model_type, model_name)

@@ -63,7 +63,7 @@ def load_model(file_name):
     :return: The loaded model
     """
     final_model_path = os.path.join(model_path, f"{file_name}.pth")
-    model = torch.load(final_model_path)
+    model = torch.load(final_model_path, weights_only=False)
     model.eval()
     logger.info(f"Model {file_name} loaded successfully.")
     return model
