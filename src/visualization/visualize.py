@@ -1,4 +1,5 @@
 import os
+import sys
 import optuna
 import matplotlib.pyplot as plt
 from sklearn.metrics import (
@@ -9,12 +10,18 @@ from sklearn.metrics import (
     precision_recall_curve,
     auc,
 )
-import joblib
 import numpy as np
 
 
 # Importing modules from your project
-from utils import set_seed, DEFAULT_SEED, set_log, load_model, load_study
+from utils import (
+    set_seed,
+    DEFAULT_SEED,
+    set_log,
+    load_study,
+    load_evaluation,
+    load_training,
+)
 
 # Set the random seed for reproducibility
 set_seed()
@@ -90,20 +97,6 @@ def visualize_study(file_name):
     visualize_param_importance(study, plot_dir)
 
 
-# Function to load evaluation results
-def load_evaluation_results(file_name):
-    load_file = os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "..",
-        "storage",
-        "evaluations",
-        file_name,
-        "evaluation.pkl",
-    )
-    return joblib.load(load_file)
-
-
 # Function to visualize the confusion matrix
 def visualize_confusion_matrix(true_labels, predicted_labels, plot_dir):
     """
@@ -113,6 +106,7 @@ def visualize_confusion_matrix(true_labels, predicted_labels, plot_dir):
     :param predicted_labels: Predicted labels from the model.
     :param plot_dir: Directory where the confusion matrix plot will be saved.
     """
+    logger.info(f"Plotting confusion matrix.")
     cm = confusion_matrix(true_labels, predicted_labels)
     cm_display = ConfusionMatrixDisplay(
         confusion_matrix=cm, display_labels=["Class 0", "Class 1"]
@@ -132,6 +126,7 @@ def visualize_roc_curve(true_labels, probabilities_labels, plot_dir):
     :param probabilities_labels: Predicted probabilities from the model.
     :param plot_dir: Directory where the ROC curve plot will be saved.
     """
+    logger.info(f"Plotting ROC curve and AUC score.")
     # Compute the ROC curve and AUC
     fpr, tpr, thresholds = roc_curve(true_labels, probabilities_labels)
     roc_auc = auc(fpr, tpr)
@@ -183,6 +178,7 @@ def visualize_precision_recall_curve(true_labels, probabilities_labels, plot_dir
     :param probabilities_labels: Predicted probabilities from the model.
     :param plot_dir: Directory where the Precision-Recall curve plot will be saved.
     """
+    logger.info(f"Plotting Precision-Recall curve.")
     precision_vals, recall_vals, _ = precision_recall_curve(
         true_labels, probabilities_labels
     )
@@ -211,7 +207,7 @@ def visualize_evaluate(file_name):
     logger.info(f"Loading evaluation results from file: {file_name}")
 
     # Load the saved evaluation results
-    data = load_evaluation_results(file_name)
+    data = load_evaluation(file_name)
     predicted_labels = data["predictions"]
     true_labels = data["true_labels"]
     probabilities_labels = data["probabilities"]
@@ -226,3 +222,36 @@ def visualize_evaluate(file_name):
     visualize_confusion_matrix(true_labels, predicted_labels, plot_dir)
     visualize_roc_curve(true_labels, probabilities_labels, plot_dir)
     visualize_precision_recall_curve(true_labels, probabilities_labels, plot_dir)
+
+
+def visualize_loss_curve(losses, plot_dir):
+    logger.info(f"Plotting loss curve.")
+    # Plot the loss curve
+    plt.plot(losses)
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.title("Training Loss")
+
+    # Save the plot
+    loss_curve_filename = os.path.join(plot_dir, "tr_loss_curve.png")
+    save_plot(loss_curve_filename)
+
+
+def visualize_train(file_name):
+    logger.info(f"Loading training results from file: {file_name}")
+    # Load the saved evaluation results
+    data = load_training(file_name)
+    losses = data["losses"]
+
+    # Define the directory where the plot will be saved
+    plot_dir = os.path.join(
+        os.path.dirname(__file__), "..", "..", "storage", "plots", file_name
+    )
+    os.makedirs(plot_dir, exist_ok=True)
+
+    visualize_loss_curve(losses, plot_dir)
+
+
+if __name__ == "__main__":
+    src_path = os.path.join(os.path.dirname(__file__), "..")
+    sys.path.append(src_path)

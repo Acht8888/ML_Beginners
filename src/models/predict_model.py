@@ -2,7 +2,6 @@ import torch
 import os
 import sys
 from sklearn.metrics import accuracy_score
-from sklearn.model_selection import KFold
 import numpy as np
 from sklearn.metrics import (
     accuracy_score,
@@ -12,12 +11,10 @@ from sklearn.metrics import (
     roc_auc_score,
     roc_curve,
 )
-import matplotlib.pyplot as plt
-import joblib
 
 
 # Importing modules from your project
-from utils import set_seed, DEFAULT_SEED, set_log, save_model, load_model, save_study
+from utils import set_seed, DEFAULT_SEED, set_log, load_model, save_evaluation
 
 # Set the random seed for reproducibility
 set_seed()
@@ -50,17 +47,6 @@ def calculate_metrics(y_true, y_pred, y_probs):
         "f1": f1,
         "roc_auc": roc_auc,
     }
-
-
-def save_evaluation_results(file_name, save_path, y_test, y_probs, y_pred):
-    os.makedirs(save_path, exist_ok=True)
-    save_file = os.path.join(save_path, "evaluation.pkl")
-
-    joblib.dump(
-        {"true_labels": y_test, "probabilities": y_probs, "predictions": y_pred},
-        save_file,
-    )
-    logger.info(f"Evaluation results saved to {save_file}.")
 
 
 def find_optimal_threshold(y_test, y_probs):
@@ -104,7 +90,7 @@ def evaluate_model(file_name, X_test, y_test, threshold):
     )
 
     # Save evaluation results
-    save_evaluation_results(file_name, save_path, y_test, y_probs, y_pred)
+    save_evaluation(file_name, y_test, y_probs, y_pred)
 
 
 def predict_model(model, X, threshold):
@@ -154,7 +140,7 @@ def evaluate_model_opt_threshold(file_name, X_test, y_test):
     save_path = os.path.join(
         os.path.dirname(__file__), "..", "..", "storage", "evaluations", file_name
     )
-    save_evaluation_results(file_name, save_path, y_test, y_probs, y_pred)
+    save_evaluation(file_name, y_test, y_probs, y_pred)
 
 
 if __name__ == "__main__":

@@ -22,6 +22,7 @@ from utils import (
     load_model,
     save_study,
     load_study,
+    save_training,
 )
 
 # Set the random seed for reproducibility
@@ -53,7 +54,7 @@ def train_and_save(model_type, model_name, X_train, y_train, X_test, y_test, **k
     if model_type == "decision_tree":
         pass
     elif model_type == "neural_network":
-        model = train_nn(X_train=X_train, y_train=y_train, **kwargs)
+        model, losses = train_nn(X_train=X_train, y_train=y_train, **kwargs)
     elif model_type == "naive_bayes":
         pass
     elif model_type == "genetic_algorithm":
@@ -65,10 +66,7 @@ def train_and_save(model_type, model_name, X_train, y_train, X_test, y_test, **k
         raise ValueError(f"Model '{model_type}' not recognized!")
 
     if model:
-        # Evaluate and save the model
-        predictions = predict_model(model, X_test, 0.5)
-        test_accuracy = accuracy_score(y_test, predictions)
-        logger.info(f"Test Accuracy: {test_accuracy:.4f}")
+        save_training(losses, model_type, model_name)
         save_model(model, model_type, model_name)
 
 

@@ -68,6 +68,8 @@ def train_nn(X_train, y_train, lr=0.001, batch_size=32, epochs=100, hidden_size=
     criterion = nn.BCELoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
+    losses = []
+
     # Training loop
     for epoch in range(epochs):
         model.train()
@@ -85,12 +87,14 @@ def train_nn(X_train, y_train, lr=0.001, batch_size=32, epochs=100, hidden_size=
             optimizer.step()
             total_loss += loss.item()
 
-        # Print average loss for this epoch
+        # Print progress
         if (epoch + 1) % 10 == 0:
-            avg_loss = total_loss / len(train_loader)
-            logger.info(f"Epoch [{epoch + 1}/{epochs}], Loss: {avg_loss:.4f}")
+            print(f"Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}")
 
-    return model
+        # Store loss for plotting
+        losses.append(loss.item())
+
+    return model, losses
 
 
 def train_nn_optuna(X_train, y_train, trial):

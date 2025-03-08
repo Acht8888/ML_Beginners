@@ -12,6 +12,11 @@ model_path = os.path.join(os.path.dirname(__file__), "..", "models", "experiment
 # Define the path to the study
 study_path = os.path.join(os.path.dirname(__file__), "..", "storage", "studies")
 
+evaluation_path = os.path.join(
+    os.path.dirname(__file__), "..", "storage", "evaluations"
+)
+
+training_path = os.path.join(os.path.dirname(__file__), "..", "storage", "trainings")
 
 DEFAULT_SEED = 42
 
@@ -42,13 +47,6 @@ logger = set_log()
 
 
 def save_model(model, model_type, model_name):
-    """
-    Save the trained.
-
-    :param model: The trained model
-    :param model_type: The type of the model (used for naming the file)
-    :param model_name: The name of the model (used for saving)
-    """
     model_filename = f"{model_type[0:2]}_{model_name}.pth"
     final_model_path = os.path.join(model_path, model_filename)
     torch.save(model, final_model_path)
@@ -56,12 +54,6 @@ def save_model(model, model_type, model_name):
 
 
 def load_model(file_name):
-    """
-    Load a saved model from the disk.
-
-    :param file_name: The name of the saved model file
-    :return: The loaded model
-    """
     final_model_path = os.path.join(model_path, f"{file_name}.pth")
     model = torch.load(final_model_path, weights_only=False)
     model.eval()
@@ -73,11 +65,42 @@ def save_study(study, model_type, model_name):
     study_filename = f"{model_type[0:2]}_{model_name}.pkl"
     final_study_path = os.path.join(study_path, study_filename)
     joblib.dump(study, final_study_path)
-    logger.info(f"Model saved to {final_study_path}")
+    logger.info(f"Study saved to {final_study_path}")
 
 
 def load_study(file_name):
     final_study_path = os.path.join(study_path, f"{file_name}.pkl")
-    study = joblib.load(final_study_path)
+    logger.info(f"Study {file_name} loaded successfully.")
+    return joblib.load(final_study_path)
 
-    return study
+
+def save_evaluation(file_name, y_test, y_probs, y_pred):
+    os.makedirs(evaluation_path, exist_ok=True)
+    evaluation_filename = f"{file_name}.pkl"
+    final_evaluation_path = os.path.join(evaluation_path, evaluation_filename)
+    joblib.dump(
+        {"true_labels": y_test, "probabilities": y_probs, "predictions": y_pred},
+        final_evaluation_path,
+    )
+    logger.info(f"Evaluation results saved to {final_evaluation_path}.")
+
+
+# Function to load evaluation results
+def load_evaluation(file_name):
+    final_evaluation_path = os.path.join(evaluation_path, f"{file_name}.pkl")
+    logger.info(f"Evaluation {file_name} loaded successfully.")
+    return joblib.load(final_evaluation_path)
+
+
+def save_training(losses, model_type, model_name):
+    os.makedirs(training_path, exist_ok=True)
+    training_filename = f"{model_type[0:2]}_{model_name}.pkl"
+    final_training_path = os.path.join(training_path, training_filename)
+    joblib.dump({"losses": losses}, final_training_path)
+    logger.info(f"Training results saved to {final_training_path}.")
+
+
+def load_training(file_name):
+    final_training_path = os.path.join(training_path, f"{file_name}.pkl")
+    logger.info(f"Training {file_name} loaded successfully.")
+    return joblib.load(final_training_path)

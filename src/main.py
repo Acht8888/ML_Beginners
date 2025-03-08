@@ -11,7 +11,7 @@ from models.train_model import (
     tune_and_save,
 )
 from models.predict_model import evaluate_model, evaluate_model_opt_threshold
-from visualization.visualize import visualize_study, visualize_evaluate
+from visualization.visualize import visualize_study, visualize_evaluate, visualize_train
 from utils import set_seed, DEFAULT_SEED, set_log
 
 
@@ -132,7 +132,7 @@ def main():
         "--threshold", type=float, help="Set a custom threshold for classification"
     )
     eval_parser.add_argument(
-        "--file_name", type=str, required=True, help="Name of the model file"
+        "--model_name", type=str, required=True, help="Name of the model file"
     )
 
     # Visualize Command
@@ -142,7 +142,7 @@ def main():
     visualize_parser.add_argument(
         "--mode",
         type=str,
-        choices=["study", "evaluate"],
+        choices=["study", "evaluate", "train"],
         required=True,
         help="Mode of visualization",
     )
@@ -150,7 +150,7 @@ def main():
         "--file_name",
         type=str,
         required=True,
-        help="Name of the file containing model data",
+        help="Name of the file containing data",
     )
 
     args = parser.parse_args()
@@ -195,15 +195,16 @@ def main():
             direction=args.direction,
         )
     elif args.command == "evaluate":
+        logger.info(f"Evaluating for model: {args.model_name}")
         if args.mode == "opt":
             evaluate_model_opt_threshold(
-                file_name=args.file_name,
+                file_name=args.model_name,
                 X_test=X_test,
                 y_test=y_test,
             )
         elif args.mode == "manual":
             evaluate_model(
-                file_name=args.file_name,
+                file_name=args.model_name,
                 X_test=X_test,
                 y_test=y_test,
                 threshold=args.threshold,
@@ -213,6 +214,8 @@ def main():
             visualize_study(file_name=args.file_name)
         elif args.mode == "evaluate":
             visualize_evaluate(file_name=args.file_name)
+        elif args.mode == "train":
+            visualize_train(file_name=args.file_name)
     else:
         parser.print_help()
 
@@ -226,13 +229,14 @@ def main():
 
 # Use the optimal hyperparameters to create and train the model
 # python src/main.py train --model_type neural_network --model_name neural_network_study --mode study --file_name ne_neural_network_study
+# python src/main.py visualize --mode train --file_name ne_neural_network_study
 
 # Find and use the optimal threshold to evaluate the model
-# python src/main.py evaluate --mode opt --file_name ne_neural_network_study
+# python src/main.py evaluate --mode opt --model_name ne_neural_network_study
 # python src/main.py visualize --mode evaluate --file_name ne_neural_network_study
 
 # Use the desired threshold to evaluate the model
-# python src/main.py evaluate --mode manual --threshold 0.5 --file_name ne_neural_network_study
+# python src/main.py evaluate --mode manual --threshold 0.5 --model_name ne_neural_network_study
 # python src/main.py visualize --mode evaluate --file_name ne_neural_network_study
 
 # python src/main.py predict --model neural_network --input_data data/sample.csv
