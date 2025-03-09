@@ -10,6 +10,8 @@ from models.neural_network import (
     train_nn_optuna,
 )
 
+from models.genetic_algorithm import GeneticAlgorithmTrainer
+
 from utils import (
     set_seed,
     DEFAULT_SEED,
@@ -53,7 +55,15 @@ def train_and_save(model_type, model_name, X_train, y_train, X_test, y_test, **k
     elif model_type == "naive_bayes":
         pass
     elif model_type == "genetic_algorithm":
-        pass
+        trainer = GeneticAlgorithmTrainer(
+            population_size=kwargs.get("population_size", 50),
+            mutation_rate=kwargs.get("mutation_rate", 0.05),
+            generations=kwargs.get("generations", 100),
+            selection_rate=kwargs.get("selection_rate", 0.2),
+            hidden_size=kwargs.get("hidden_size", 15),
+        )
+        print(f"Training {model_name} using Genetic Algorithm...")
+        model, losses = trainer.train(X_train, y_train)
     elif model_type == "graphical_model":
         pass
     else:
@@ -99,7 +109,10 @@ def tune_and_save(
     elif model_type == "naive_bayes":
         pass
     elif model_type == "genetic_algorithm":
-        pass
+        trainer = GeneticAlgorithmTrainer()
+        best_params = trainer.tune_hyperparameters_ga(X_train, y_train, n_trials=n_trials)
+        study = optuna.create_study(direction="maximize", sampler=TPESampler(seed=DEFAULT_SEED))
+        study.set_user_attr("best_params", best_params)
     elif model_type == "graphical_model":
         pass
     else:

@@ -108,6 +108,11 @@ def main():
     train_parser.add_argument(
         "--hidden_size", type=int, default=15, help="Hidden layer size"
     )
+    
+    train_parser.add_argument("--population_size", type=int, default=50)
+    train_parser.add_argument("--mutation_rate", type=float, default=0.05)
+    train_parser.add_argument("--generations", type=int, default=100)
+    train_parser.add_argument("--selection_rate", type=float, default=0.2)
     train_parser.add_argument(
         "--epochs", type=int, default=100, help="Number of epochs"
     )
@@ -241,6 +246,10 @@ def main():
                         batch_size=args.batch_size,
                         epochs=args.epochs,
                         hidden_size=args.hidden_size,
+                        population_size=args.population_size,
+                        mutation_rate=args.mutation_rate,
+                        generations=args.generations,
+                        selection_rate=args.selection_rate,
                     )
                 elif args.mode == "study":
                     train_study_and_save(
