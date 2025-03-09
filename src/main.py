@@ -11,7 +11,11 @@ from models.train_model import (
     train_study_and_save,
     tune_and_save,
 )
-from models.predict_model import evaluate_model, evaluate_model_opt_threshold
+from models.predict_model import (
+    evaluate_model,
+    evaluate_model_opt_threshold,
+    predict_model,
+)
 from visualization.visualize import visualize_study, visualize_evaluate, visualize_train
 from utils import set_seed, DEFAULT_SEED, set_log
 
@@ -179,6 +183,29 @@ def main():
 
     args = parser.parse_args()
 
+    # Predict Command
+    predict_parser = subparsers.add_parser(
+        "predict", help="Make predictions using a trained model"
+    )
+    predict_parser.add_argument(
+        "--model_name",
+        type=str,
+        required=True,
+        help="Name of the trained model to use for prediction",
+    )
+    predict_parser.add_argument(
+        "--file_name",
+        type=str,
+        required=True,
+        help="Name of the input CSV file containing data for prediction",
+    )
+    predict_parser.add_argument(
+        "--threshold",
+        type=float,
+        required=True,
+        help="Threshold for classification (e.g., 0.5)",
+    )
+
     X_train = None
     X_test = None
     y_train = None
@@ -236,7 +263,7 @@ def main():
                     direction=args.direction,
                 )
             elif args.command == "evaluate":
-                logger.info(f"Evaluating for model: {args.model_name}")
+                logger.info(f"Evaluating model: {args.model_name}")
                 if args.mode == "opt":
                     evaluate_model_opt_threshold(
                         file_name=args.model_name,
@@ -257,6 +284,13 @@ def main():
                     visualize_evaluate(file_name=args.file_name)
                 elif args.mode == "train":
                     visualize_train(file_name=args.file_name)
+            elif args.command == "predict":
+                logger.info(f"Making predictions using model: {args.model_name}")
+                predict_model(
+                    model_name=args.model_name,
+                    file_name=args.file_name,
+                    threshold=args.threshold,
+                )
             else:
                 parser.print_help()
         except Exception as e:
@@ -270,12 +304,12 @@ def main():
 # Run the script
 # python src/main.py
 
-# Preprocess and load the data
+# Preprocess and load the data for tuning, training and evaluating
 # preprocess --file_name_raw raw_data --file_name_processed processed_data
 # load --file_name processed_data
 
 # Tune and visualize the study
-# tune --model_type neural_network --model_name neural_network_study --trials 20 --direction minimize
+# tune --model_type neural_network --model_name neural_network_study --trials 5 --direction minimize
 # visualize --mode study --file_name ne_neural_network_study
 
 # Use the optimal hyperparameters to create and train the model
@@ -290,6 +324,8 @@ def main():
 # evaluate --mode manual --threshold 0.5 --model_name ne_neural_network_study
 # visualize --mode evaluate --file_name ne_neural_network_study
 
-# python src/main.py predict --model neural_network --input_data data/sample.csv
+# Use the model to predict using new data
+# predict --model_name ne_neural_network_study --file_name processed_data --threshold 0.3
+
 if __name__ == "__main__":
     main()
