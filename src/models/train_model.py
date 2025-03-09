@@ -6,20 +6,15 @@ from optuna.samplers import TPESampler
 
 # Importing modules from your project
 from models.neural_network import (
-    NeuralNetworkModel,
     train_nn,
     train_nn_optuna,
 )
-from models.predict_model import (
-    predict_model,
-)
-from visualization.visualize import visualize_study
+
 from utils import (
     set_seed,
     DEFAULT_SEED,
     set_log,
     save_model,
-    load_model,
     save_study,
     load_study,
     save_training,

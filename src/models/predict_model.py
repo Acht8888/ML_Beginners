@@ -3,6 +3,7 @@ import os
 import sys
 from sklearn.metrics import accuracy_score
 import numpy as np
+from sklearn.model_selection import KFold
 from sklearn.metrics import (
     accuracy_score,
     precision_score,
@@ -132,6 +133,34 @@ def evaluate_model_opt_threshold(file_name, X_test, y_test):
         os.path.dirname(__file__), "..", "..", "storage", "evaluations", file_name
     )
     save_evaluation(file_name, y_test, y_probs, y_pred)
+
+
+# # NOTE: WIP
+# def evaluate_model_cross_validation(model, X, y, k=5):
+#     """
+#     Perform K-Fold Cross-Validation on the model.
+
+#     :param model: The model to evaluate
+#     :param X: Features
+#     :param y: Labels
+#     :param k: Number of folds for cross-validation (default: 5)
+#     :return: Mean accuracy across K folds
+#     """
+#     kf = KFold(n_splits=k, shuffle=True, random_state=DEFAULT_SEED)
+#     accuracies = []
+
+#     for train_idx, test_idx in kf.split(X):
+#         X_train, X_val = X[train_idx], X[test_idx]
+#         y_train, y_val = y[train_idx], y[test_idx]
+
+#         model.train_model(X_train, y_train)  # Retrain for each fold
+
+#         # Evaluate model
+#         accuracy = evaluate_model(model, X_val, y_val)
+#         accuracies.append(accuracy)
+
+#     mean_accuracy = np.mean(accuracies)
+#     return mean_accuracy
 
 
 def predict_model(model_name, file_name, threshold):
