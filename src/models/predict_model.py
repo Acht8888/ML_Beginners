@@ -100,6 +100,22 @@ def evaluate_model(file_name, X_test, y_test, threshold):
 
     # Save evaluation results
     save_evaluation(file_name, y_test, y_probs, y_pred)
+    
+def evaluate_model_naive_bayes(file_name, var_smoothing, X_test, y_test, threshold=0.5):
+    model = GaussianNB(var_smoothing=var_smoothing)
+    model.fit(X_test, y_test)
+    y_pred = model.predict(X_test)  # Directly predict labels
+    y_probs = model.predict_proba(X_test)[:, 1]  # Get probability scores
+
+    # Compute evaluation metrics
+    metrics = calculate_metrics(y_test, y_pred, y_probs)
+
+    # Log results
+    for metric_name, value in metrics.items():
+        logger.info(f"{metric_name.capitalize()}: {value:.4f}")
+
+    # Save evaluation results
+    save_evaluation(file_name, y_test, y_probs, y_pred)
 
 
 def evaluate_model_opt_threshold(file_name, X_test, y_test):
@@ -132,6 +148,38 @@ def evaluate_model_opt_threshold(file_name, X_test, y_test):
     save_path = os.path.join(
         os.path.dirname(__file__), "..", "..", "storage", "evaluations", file_name
     )
+    save_evaluation(file_name, y_test, y_probs, y_pred)
+    
+from sklearn.naive_bayes import GaussianNB
+
+def evaluate_model_opt_threshold_naive_bayes(file_name, var_smoothing, X_test, y_test):
+    """
+    Evaluate a Naïve Bayes model on the test set using an optimal threshold.
+
+    :param model: Trained GaussianNB model
+    :param X_test: Test features (NumPy array or Pandas DataFrame)
+    :param y_test: True labels for the test set
+    :return: None
+    """
+    # Get probability predictions for the positive class (class 1)
+    model = GaussianNB(var_smoothing=var_smoothing)
+    model.fit(X_test, y_test)
+    y_probs = model.predict_proba(X_test)[:, 1]  # Probability of positive class
+
+    # Find the optimal threshold
+    best_threshold = find_optimal_threshold(y_test, y_probs)
+
+    # Get final predictions using the optimal threshold
+    y_pred = (y_probs > best_threshold).astype(int)
+
+    # Compute evaluation metrics
+    metrics = calculate_metrics(y_test, y_pred, y_probs)
+
+    # Log and print metrics
+    for metric_name, value in metrics.items():
+        logger.info(f"{metric_name.capitalize()}: {value:.4f}")
+
+    # Save the evaluation results
     save_evaluation(file_name, y_test, y_probs, y_pred)
 
 
@@ -184,6 +232,33 @@ def predict_model(model_name, file_name, threshold):
 
     processed_data["Predicted Churn"] = predicted
 
+    save_prediction(processed_data, file_name)
+    
+def predict_model_naive_bayes(var_smoothing, X_test, y_test, file_name, threshold):
+    """
+    Evaluate the trained model on new data and return predicted labels.
+
+    :param model_name: The name of the trained model file.
+    :param file_name: The name of the file containing new data.
+    :param threshold: The decision threshold for classification.
+    :param model_type: The type of model ('neural_net' or 'naive_bayes').
+    :return: Saves the prediction results to a file.
+    """
+    model = GaussianNB(var_smoothing=var_smoothing)
+    model.fit(X_test, y_test)
+    # Ensure this function loads both NN & NB models
+
+    # Load and preprocess the data
+    processed_data = load_processed(file_name)
+    processed_data = processed_data.drop(columns=["Churn"], errors="ignore")
+    X = processed_data.values  # Convert to NumPy array
+    y_probs = model.predict_proba(X)[:, 1]  # Get probabilities for class 1
+
+    # Apply threshold to get binary predictions
+    predicted = (y_probs > threshold).astype(int)
+    processed_data["Predicted Churn"] = predicted
+
+    # Save the predictions
     save_prediction(processed_data, file_name)
 
 

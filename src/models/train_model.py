@@ -10,6 +10,11 @@ from models.neural_network import (
     train_nn_optuna,
 )
 
+from models.naive_bayes import (
+    train_nb,
+    train_nb_optuna
+)
+
 from utils import (
     set_seed,
     DEFAULT_SEED,
@@ -51,7 +56,7 @@ def train_and_save(model_type, model_name, X_train, y_train, X_test, y_test, **k
     elif model_type == "neural_network":
         model, losses = train_nn(X_train=X_train, y_train=y_train, **kwargs)
     elif model_type == "naive_bayes":
-        pass
+        model, losses = train_nb(X_train=X_train, y_train=y_train, **kwargs)
     elif model_type == "genetic_algorithm":
         pass
     elif model_type == "graphical_model":
@@ -97,7 +102,13 @@ def tune_and_save(
             direction=direction,
         )
     elif model_type == "naive_bayes":
-        pass
+        study = tune_hyperparameters(
+            model_train_fn=train_nb_optuna,
+            X_train=X_train,
+            y_train=y_train,
+            n_trials=n_trials,
+            direction=direction,
+        )
     elif model_type == "genetic_algorithm":
         pass
     elif model_type == "graphical_model":
