@@ -57,3 +57,117 @@ source env/bin/activate
 ```bash
 pip install -r requirements.txt
 ```
+
+## Usage
+
+### 1. Train a Model
+
+You can train a machine learning model using the `train` command. It requires the following arguments:
+
+#### Example:
+
+```bash
+python src/main.py train --model_type neural_network --model_name neural_network_1 --mode manual --lr 0.001 --batch_size 32 --epochs 20 --hidden_size 15
+```
+
+#### Arguments:
+
+- `--model_type`: The type of model to train. Choose from:
+
+  - `decision_tree`
+  - `neural_network`
+  - `naive_bayes`
+  - `genetic_algorithm`
+  - `graphical_model`
+
+- `--model_name`: The name to give to the trained model.
+
+- `--mode`: Select between `manual` and `study` for how to load hyperparameters:
+
+  - `manual`: Manually input hyperparameters for training.
+  - `study`: Load hyperparameters from a study file.
+
+- `--lr`: Learning rate for training. (Only in `manual` mode)
+
+- `--batch_size`: Batch size for training. (Only in `manual` mode)
+
+- `--hidden_size`: Hidden layer size for the model (Only in `manual` mode).
+
+- `--epochs`: Number of epochs to train. (Only in `manual` mode).
+
+- `--file_name`: File name to load the hyperparameters if using `study` mode.
+
+#### Example with study mode:
+
+```bash
+python src/main.py train --model_type neural_network --model_name neural_network_2 --mode study --file_name eural_network_2
+```
+
+---
+
+### 2. Tune Hyperparameters
+
+Use the `tune` command to perform hyperparameter tuning on an already trained model.
+
+#### Example:
+
+```bash
+python src/main.py tune --model_type neural_network --model_name neural_network_2 --trials 20 --direction maximize
+```
+
+#### Arguments:
+
+- `--model_type`: The type of model to tune. Choose from:
+
+  - `decision_tree`
+  - `neural_network`
+  - `naive_bayes`
+  - `genetic_algorithm`
+  - `graphical_model`
+
+- `--model_name`: The name of the trained model to tune.
+
+- `--trials`: The number of tuning trials (e.g., how many different hyperparameter configurations to try).
+
+- `--direction`: Whether to minimize or maximize the tuning objective:
+  - `minimize`: To minimize loss.
+  - `maximize`: To maximize accuracy.
+
+---
+
+### 3. Visualize Model Performance
+
+You can visualize the performance of the model using the `visualize` command. This command can visualize either the tuning process or the evaluation of a trained model.
+
+#### Example:
+
+```bash
+python src/main.py visualize --mode tune --file_name neural_network_2
+```
+
+#### Arguments:
+
+- `--mode`: Choose between:
+
+  - `tune`: Visualize the results from hyperparameter tuning.
+  - `evaluate`: Visualize the evaluation of the trained model.
+
+- `--file_name`: The file name containing model data (either tuning results or evaluation results).
+
+---
+
+### 4. Evaluate a Trained Model
+
+The `evaluate` command allows you to evaluate the performance of a trained model.
+
+#### Example:
+
+```bash
+python src/main.py evaluate --file_name trained_model
+```
+
+#### Arguments:
+
+- `--file_name`: The file name of the trained model to evaluate.
+
+---
