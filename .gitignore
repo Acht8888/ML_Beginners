@@ -1,2 +1,4 @@
 # ignore ALL .log files
 *.log
+*.pyc
+__pycache__/

@@ -1,68 +1,157 @@
-import sys
 import os
-import pandas as pd
-import numpy as np
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.model_selection import  GridSearchCV
-from sklearn.feature_selection import SelectFromModel
-from sklearn.model_selection import cross_val_score
-import pickle
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-from src.features.features import get_features_and_labels
+import sys
+from sklearn.metrics import accuracy_score
+import optuna
+from optuna.samplers import TPESampler
 
-# Split the dataset
-from sklearn.model_selection import train_test_split
-def get_train_test_data(test_size=0.2, random_state=42):
-    X, y = get_features_and_labels() # Get data from features file
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
-    return X_train, X_test, y_train, y_test
-X_train, X_test, y_train, y_test= get_train_test_data()
+# Importing modules from your project
+from models.neural_network import (
+    NeuralNetworkModel,
+    train_nn,
+    train_nn_optuna,
+)
+from models.predict_model import (
+    predict_model,
+)
+from visualization.visualize import visualize_study
+from utils import (
+    set_seed,
+    DEFAULT_SEED,
+    set_log,
+    save_model,
+    load_model,
+    save_study,
+    load_study,
+    save_training,
+)
 
-# Tune hyperparameters with expanded search
-param_grid = {
-    'criterion': ['gini', 'entropy'],
-    'max_depth': [5, 10, 50],
-    'min_samples_split': [2, 5, 10, 50],
-    'min_samples_leaf': [2, 5, 10, 50],
-    'class_weight': ['balanced', None]
-}
-grid_search = GridSearchCV(DecisionTreeClassifier(random_state=42), param_grid, cv=5, scoring='accuracy')
-grid_search.fit(X_train, y_train)
-best_params = grid_search.best_params_
-print("Best Parameters:", best_params)
+# Set the random seed for reproducibility
+set_seed()
 
-# Train model with best parameters
-best_model = DecisionTreeClassifier(**best_params, random_state=42)
-best_model.fit(X_train, y_train)
+# Configure logging for better visibility in production
+logger = set_log()
 
-# Post-pruning: Fine-tune ccp_alpha
-path = best_model.cost_complexity_pruning_path(X_train, y_train)
-ccp_alphas = path.ccp_alphas[:-1]
-models = []
-cv_scores = []
-for ccp_alpha in ccp_alphas:
-    model = DecisionTreeClassifier(**best_params, random_state=42, ccp_alpha=ccp_alpha)
-    model.fit(X_train, y_train)
-    score = np.mean(cross_val_score(model, X_train, y_train, cv=5, scoring='accuracy'))
-    models.append(model)
-    cv_scores.append(score)
 
-# Select best ccp_alpha
-best_alpha = ccp_alphas[np.argmax(cv_scores)]
-print(f"Best ccp_alpha: {best_alpha}")
-# Train final model with best ccp_alpha
-final_model = DecisionTreeClassifier(**best_params, random_state=42, ccp_alpha=best_alpha)
-final_model.fit(X_train, y_train)
+def train_and_save(model_type, model_name, X_train, y_train, X_test, y_test, **kwargs):
+    """
+    Train and save the model of the specified type.
 
-# Create the path to the models directory
-model_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models"))
+    :param model_type: The type of model (e.g., 'neural_network')
+    :param model_name: Name for saving the model
+    :param X_train: Training features
+    :param y_train: Training labels
+    :param X_test: Testing features
+    :param y_test: Testing labels
+    :param kwargs: Additional hyperparameters for the model
+    """
+    model = None
 
-# Đảm bảo thư mục model tồn tại
-os.makedirs(model_dir, exist_ok=True)
+    print(f"Training {model_type} with the following hyperparameters:")
+    for key, value in kwargs.items():
+        print(f"{key}: {value}")
 
-# Save train_model
-model_path = os.path.join(model_dir, "train_model.pkl")
-with open(model_path, "wb") as f:
-    pickle.dump({"model": final_model}, f)
+    # Select the model type and initialize it
+    if model_type == "decision_tree":
+        pass
+    elif model_type == "neural_network":
+        model, losses = train_nn(X_train=X_train, y_train=y_train, **kwargs)
+    elif model_type == "naive_bayes":
+        pass
+    elif model_type == "genetic_algorithm":
+        pass
+    elif model_type == "graphical_model":
+        pass
+    else:
+        logger.error(f"Model '{model_type}' not recognized!")
+        raise ValueError(f"Model '{model_type}' not recognized!")
 
-print(f"Model trained and saved at {model_path}")
+    if model:
+        save_training(losses, model_type, model_name)
+        save_model(model, model_type, model_name)
+
+
+def tune_and_save(
+    model_type, model_name, X_train, y_train, n_trials, direction="minimize"
+):
+    """
+    Tune hyperparameters using Optuna and save the best model.
+
+    :param model_type: The type of the model
+    :param model_name: The name of the model
+    :param X_train: Training features
+    :param y_train: Training labels
+    :param X_test: Testing features
+    :param y_test: Testing labels
+    :param n_trials: Number of Optuna trials for hyperparameter tuning
+    :param direction: Direction for optimization ('minimize' or 'maximize')
+    """
+    study = None
+    if direction not in ["minimize", "maximize"]:
+        logger.error(f"Direction '{direction}' not recognized!")
+        raise ValueError(f"Direction '{direction}' not recognized!")
+
+    # Select the model
+    if model_type == "decision_tree":
+        pass
+    elif model_type == "neural_network":
+        study = tune_hyperparameters(
+            model_train_fn=train_nn_optuna,
+            X_train=X_train,
+            y_train=y_train,
+            n_trials=n_trials,
+            direction=direction,
+        )
+    elif model_type == "naive_bayes":
+        pass
+    elif model_type == "genetic_algorithm":
+        pass
+    elif model_type == "graphical_model":
+        pass
+    else:
+        logger.error(f"Model '{model_type}' not recognized!")
+        raise ValueError(f"Model '{model_type}' not recognized!")
+
+    if study:
+        save_study(study, model_type, model_name)
+
+
+def tune_hyperparameters(
+    model_train_fn, X_train, y_train, n_trials=10, direction="minimize"
+):
+    """
+    Tune hyperparameters of the neural network using Optuna.
+
+    :param X_train: Training features (Tensor).
+    :param y_train: Training labels (Tensor).
+    :param n_trials: Number of trials for Optuna optimization. Default is 10.
+    :param direction: Optimization direction ('minimize' or 'maximize'). Default is 'minimize'.
+    :return: Optuna study object and the best hyperparameters.
+    """
+    sampler = TPESampler(seed=DEFAULT_SEED)
+    study = optuna.create_study(
+        direction=direction,
+        sampler=sampler,
+    )
+    study.optimize(
+        lambda trial: model_train_fn(X_train, y_train, trial),
+        n_trials=n_trials,
+    )
+
+    logger.info("Best Hyperparameters: %s", study.best_params)
+
+    return study
+
+
+def train_study_and_save(
+    model_type, model_name, X_train, y_train, X_test, y_test, file_name
+):
+    study = load_study(file_name)
+
+    train_and_save(
+        model_type, model_name, X_train, y_train, X_test, y_test, **study.best_params
+    )
+
+
+if __name__ == "__main__":
+    src_path = os.path.join(os.path.dirname(__file__), "..")
+    sys.path.append(src_path)

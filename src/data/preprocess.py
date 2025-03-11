@@ -1,49 +1,64 @@
-import pandas as pd
+import sys
 import os
-from sklearn.preprocessing import MinMaxScaler
+import pandas as pd
 
-# Test
-# Define the path to the raw data
-raw_data_path = os.path.join(os.path.dirname(__file__),"..", "..", "data", "raw", "raw_data.csv")
-
-# Define the path to the processed data
-processed_data_path = os.path.join(os.path.dirname(__file__),"..", "..", "data", "processed", "processed_data.csv")
-
-# Read the CSV file
-df = pd.read_csv(raw_data_path)
-
-# Drop customerID column
-df.drop("customerID", axis="columns", inplace=True)
-
-# Convert TotalCharges to numeric, handle errors as NaN
-pd.to_numeric(df.TotalCharges, errors="coerce").isnull()
-
-# Remove rows with space in TotalCharges
-df = df[df.TotalCharges != " "]
-df.TotalCharges = pd.to_numeric(df.TotalCharges)
-
-# Replace "No internet service" and "No phone service" with "No" in one call
-df.replace("No internet service", "No", inplace=True)
-df.replace("No phone service", "No", inplace=True)
+# Importing modules from your project
+from features.build_features import (
+    build_features,
+)
+from utils import set_seed, set_log
 
 
-# Replace "Yes" with 1 and "No" with 0 for all yes/no columns
-yes_no_columns = ["Partner", "Dependents", "PhoneService", "MultipleLines", 
-                  "OnlineSecurity", "OnlineBackup", "DeviceProtection", "TechSupport", 
-                  "StreamingTV", "StreamingMovies", "PaperlessBilling", "Churn"]
-df[yes_no_columns] = df[yes_no_columns].replace({"Yes": 1, "No": 0})
-df["gender"] = df["gender"].replace({"Female": 1, "Male": 0})
-df = pd.get_dummies(df, columns=["InternetService", "Contract", "PaymentMethod"], drop_first=True).astype(int)
+# Set the random seed for reproducibility
+set_seed()
 
-# Convert boolean columns to integers (True -> 1, False -> 0)
-bool_columns = df.select_dtypes(include="bool").columns
-df[bool_columns] = df[bool_columns].astype(int)
+# Configure logging for better visibility in production
+logger = set_log()
 
-# Scale numerical columns
-scaler = MinMaxScaler()
-cols_to_scale = ["tenure", "MonthlyCharges", "TotalCharges"]
-df[cols_to_scale] = scaler.fit_transform(df[cols_to_scale])
 
-# Save processed data
-df.to_csv(processed_data_path, index=False)
+def get_data_paths(file_name_raw, file_name_processed):
+    """Get paths for raw and processed data."""
+    base_dir = os.path.dirname(__file__)
+    raw_data_path = os.path.join(
+        base_dir, "..", "..", "data", "raw", f"{file_name_raw}.csv"
+    )
+    processed_data_path = os.path.join(
+        base_dir, "..", "..", "data", "processed", f"{file_name_processed}.csv"
+    )
+    return raw_data_path, processed_data_path
 
+
+def load_data(file_path):
+    """Load CSV file into a pandas DataFrame."""
+    try:
+        df = pd.read_csv(file_path)
+        logger.info("Data successfully loaded.")
+        return df
+    except Exception as e:
+        logger.error(f"Error loading data: {e}")
+        raise
+
+
+def save_data(df, file_path):
+    """Save the processed DataFrame to a CSV file."""
+    try:
+        df.to_csv(file_path, index=False)
+        logger.info(f"Processed data saved to {file_path}.")
+    except Exception as e:
+        logger.error(f"Error saving data: {e}")
+        raise
+
+
+def preprocess(file_name_raw, file_name_processed):
+    """Main function to execute the data preprocessing pipeline."""
+    raw_data_path, processed_data_path = get_data_paths(
+        file_name_raw, file_name_processed
+    )
+    df = load_data(raw_data_path)
+    df_processed = build_features(df)
+    save_data(df_processed, processed_data_path)
+
+
+if __name__ == "__main__":
+    src_path = os.path.join(os.path.dirname(__file__), "..")
+    sys.path.append(src_path)
