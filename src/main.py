@@ -32,7 +32,18 @@ data_path = os.path.join(
 )
 
 
-def load_data(data_path):
+def check_data_loaded(X_train, X_test, y_train, y_test):
+    if X_train is None or X_test is None or y_train is None or y_test is None:
+        logger.warning(
+            "Data not loaded. Please load the data first using the 'load' command."
+        )
+        return False
+    return True
+
+
+def handle_load_data(args):
+    logger.info(f"Loading data: {args.file_name}")
+    data_path = f"data/processed/{args.file_name}.csv"
     df = pd.read_csv(data_path)
     X_train, X_test, y_train, y_test = train_test_split(
         df.drop("Churn", axis=1), df["Churn"], test_size=0.2, random_state=DEFAULT_SEED
@@ -42,6 +53,85 @@ def load_data(data_path):
         torch.tensor(X_test.values, dtype=torch.float32),
         torch.tensor(y_train.values, dtype=torch.float32),
         torch.tensor(y_test.values, dtype=torch.float32),
+    )
+
+
+def handle_train(args, X_train, y_train):
+    """Handle training of the model based on provided args."""
+    logger.info(f"Training model: {args.model_name}")
+    if args.mode == "manual":
+        train_and_save(
+            model_type=args.model_type,
+            model_name=args.model_name,
+            X_train=X_train,
+            y_train=y_train,
+            lr=args.lr,
+            batch_size=args.batch_size,
+            epochs=args.epochs,
+            hidden_size=args.hidden_size,
+            population_size=args.population_size,
+            mutation_rate=args.mutation_rate,
+            generations=args.generations,
+            selection_rate=args.selection_rate,
+        )
+    elif args.mode == "study":
+        train_study_and_save(
+            model_type=args.model_type,
+            model_name=args.model_name,
+            X_train=X_train,
+            y_train=y_train,
+            file_name=args.file_name,
+        )
+
+
+def handle_tune(args, X_train, y_train):
+    """Handle hyperparameter tuning."""
+    logger.info(f"Tuning hyperparameters for model: {args.model_name}")
+    tune_and_save(
+        model_type=args.model_type,
+        model_name=args.model_name,
+        X_train=X_train,
+        y_train=y_train,
+        n_trials=args.trials,
+        direction=args.direction,
+    )
+
+
+def handle_evaluate(args, X_test, y_test):
+    """Handle evaluation of a trained model."""
+    logger.info(f"Evaluating model: {args.model_name}")
+    if args.mode == "opt":
+        evaluate_model_opt_threshold(
+            file_name=args.model_name,
+            X_test=X_test,
+            y_test=y_test,
+        )
+    elif args.mode == "manual":
+        evaluate_model(
+            file_name=args.model_name,
+            X_test=X_test,
+            y_test=y_test,
+            threshold=args.threshold,
+        )
+
+
+def handle_visualize(args):
+    """Handle visualization of model performance."""
+    if args.mode == "study":
+        visualize_study(file_name=args.file_name)
+    elif args.mode == "evaluate":
+        visualize_evaluate(file_name=args.file_name)
+    elif args.mode == "train":
+        visualize_train(file_name=args.file_name)
+
+
+def handle_predict(args):
+    """Handle predictions using a trained model."""
+    logger.info(f"Making predictions using model: {args.model_name}")
+    predict_model(
+        model_name=args.model_name,
+        file_name=args.file_name,
+        threshold=args.threshold,
     )
 
 
@@ -66,6 +156,7 @@ def main():
         help="Name of the file containing processed data",
     )
 
+    # Load Data Command
     load_parser = subparsers.add_parser("load", help="Load data")
     load_parser.add_argument(
         "--file_name",
@@ -92,8 +183,6 @@ def main():
     train_parser.add_argument(
         "--model_name", type=str, required=True, help="Name of the model"
     )
-
-    # Option to choose between manual input and study-based loading of hyperparameters
     train_parser.add_argument(
         "--mode",
         type=str,
@@ -108,7 +197,6 @@ def main():
     train_parser.add_argument(
         "--hidden_size", type=int, default=15, help="Hidden layer size"
     )
-    
     train_parser.add_argument("--population_size", type=int, default=50)
     train_parser.add_argument("--mutation_rate", type=float, default=0.05)
     train_parser.add_argument("--generations", type=int, default=100)
@@ -186,8 +274,6 @@ def main():
         help="Name of the file containing data",
     )
 
-    args = parser.parse_args()
-
     # Predict Command
     predict_parser = subparsers.add_parser(
         "predict", help="Make predictions using a trained model"
@@ -208,13 +294,10 @@ def main():
         "--threshold",
         type=float,
         required=True,
-        help="Threshold for classification (e.g., 0.5)",
+        help="Set a custom threshold for classification",
     )
 
-    X_train = None
-    X_test = None
-    y_train = None
-    y_test = None
+    X_train, X_test, y_train, y_test = None, None, None, None
 
     while True:
         # Prompt user for input
@@ -227,79 +310,24 @@ def main():
         try:
             args = parser.parse_args(user_input.split())
 
+            if args.command in ["train", "tune", "evaluate", "visualize", "predict"]:
+                if not check_data_loaded(X_train, X_test, y_train, y_test):
+                    continue
+
             if args.command == "preprocess":
                 preprocess(args.file_name_raw, args.file_name_processed)
             elif args.command == "load":
-                data_path = f"data/processed/{args.file_name}.csv"
-                X_train, X_test, y_train, y_test = load_data(data_path)
+                X_train, X_test, y_train, y_test = handle_load_data(args)
             elif args.command == "train":
-                logger.info(f"Training model: {args.model_name}")
-                if args.mode == "manual":
-                    train_and_save(
-                        model_type=args.model_type,
-                        model_name=args.model_name,
-                        X_train=X_train,
-                        y_train=y_train,
-                        X_test=X_test,
-                        y_test=y_test,
-                        lr=args.lr,
-                        batch_size=args.batch_size,
-                        epochs=args.epochs,
-                        hidden_size=args.hidden_size,
-                        population_size=args.population_size,
-                        mutation_rate=args.mutation_rate,
-                        generations=args.generations,
-                        selection_rate=args.selection_rate,
-                    )
-                elif args.mode == "study":
-                    train_study_and_save(
-                        model_type=args.model_type,
-                        model_name=args.model_name,
-                        X_train=X_train,
-                        y_train=y_train,
-                        X_test=X_test,
-                        y_test=y_test,
-                        file_name=args.file_name,
-                    )
+                handle_train(args, X_train, y_train, X_test, y_test)
             elif args.command == "tune":
-                logger.info(f"Tuning hyperparameters for model: {args.model_name}")
-                tune_and_save(
-                    model_type=args.model_type,
-                    model_name=args.model_name,
-                    X_train=X_train,
-                    y_train=y_train,
-                    n_trials=args.trials,
-                    direction=args.direction,
-                )
+                handle_tune(args, X_train, y_train)
             elif args.command == "evaluate":
-                logger.info(f"Evaluating model: {args.model_name}")
-                if args.mode == "opt":
-                    evaluate_model_opt_threshold(
-                        file_name=args.model_name,
-                        X_test=X_test,
-                        y_test=y_test,
-                    )
-                elif args.mode == "manual":
-                    evaluate_model(
-                        file_name=args.model_name,
-                        X_test=X_test,
-                        y_test=y_test,
-                        threshold=args.threshold,
-                    )
+                handle_evaluate(args, X_test, y_test)
             elif args.command == "visualize":
-                if args.mode == "study":
-                    visualize_study(file_name=args.file_name)
-                elif args.mode == "evaluate":
-                    visualize_evaluate(file_name=args.file_name)
-                elif args.mode == "train":
-                    visualize_train(file_name=args.file_name)
+                handle_visualize(args)
             elif args.command == "predict":
-                logger.info(f"Making predictions using model: {args.model_name}")
-                predict_model(
-                    model_name=args.model_name,
-                    file_name=args.file_name,
-                    threshold=args.threshold,
-                )
+                handle_predict(args)
             else:
                 parser.print_help()
         except Exception as e:
@@ -307,7 +335,7 @@ def main():
 
 
 # Additional Example:
-# python src/main.py train --model_type neural_network --model_name neural_network_manual --mode manual --lr 0.001 --batch_size 32 --epochs 20 --hidden_size 15
+# train --model_type neural_network --model_name neural_network_manual --mode manual --lr 0.001 --batch_size 32 --epochs 20 --hidden_size 15
 
 # CLI Example:
 # Run the script

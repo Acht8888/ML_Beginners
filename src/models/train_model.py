@@ -29,7 +29,7 @@ set_seed()
 logger = set_log()
 
 
-def train_and_save(model_type, model_name, X_train, y_train, X_test, y_test, **kwargs):
+def train_and_save(model_type, model_name, X_train, y_train, **kwargs):
     """
     Train and save the model of the specified type.
 
@@ -51,7 +51,14 @@ def train_and_save(model_type, model_name, X_train, y_train, X_test, y_test, **k
     if model_type == "decision_tree":
         pass
     elif model_type == "neural_network":
-        model, losses = train_nn(X_train=X_train, y_train=y_train, **kwargs)
+        model, losses = train_nn(
+            X_train=X_train,
+            y_train=y_train,
+            lr=kwargs.get("lr", 0.001),
+            batch_size=kwargs.get("batch_size", 32),
+            epochs=kwargs.get("epochs", 100),
+            hidden_size=kwargs.get("hidden_size", 0.15),
+        )
     elif model_type == "naive_bayes":
         pass
     elif model_type == "genetic_algorithm":
@@ -110,8 +117,12 @@ def tune_and_save(
         pass
     elif model_type == "genetic_algorithm":
         trainer = GeneticAlgorithmTrainer()
-        best_params = trainer.tune_hyperparameters_ga(X_train, y_train, n_trials=n_trials)
-        study = optuna.create_study(direction="maximize", sampler=TPESampler(seed=DEFAULT_SEED))
+        best_params = trainer.tune_hyperparameters_ga(
+            X_train, y_train, n_trials=n_trials
+        )
+        study = optuna.create_study(
+            direction="maximize", sampler=TPESampler(seed=DEFAULT_SEED)
+        )
         study.set_user_attr("best_params", best_params)
     elif model_type == "graphical_model":
         pass

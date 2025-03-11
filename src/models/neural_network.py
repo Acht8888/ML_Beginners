@@ -73,7 +73,7 @@ def train_nn(X_train, y_train, lr=0.001, batch_size=32, epochs=100, hidden_size=
     # Training loop
     for epoch in range(epochs):
         model.train()
-        total_loss = 0
+        epoch_loss = 0
 
         for batch_X, batch_y in train_loader:
             optimizer.zero_grad()
@@ -85,14 +85,16 @@ def train_nn(X_train, y_train, lr=0.001, batch_size=32, epochs=100, hidden_size=
             # Backward pass and optimization
             loss.backward()
             optimizer.step()
-            total_loss += loss.item()
+            epoch_loss += loss.item()
 
         # Print progress
         if (epoch + 1) % 10 == 0:
-            print(f"Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}")
+            print(
+                f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss / len(train_loader):.4f}"
+            )
 
         # Store loss for plotting
-        losses.append(loss.item())
+        losses.append(epoch_loss / len(train_loader))
 
     return model, losses
 
@@ -134,9 +136,12 @@ def train_nn_optuna(X_train, y_train, trial):
     criterion = nn.BCELoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
+    total_loss = 0
+
     # Training loop
     for epoch in range(epochs):
         model.train()
+        epoch_loss = 0
 
         for batch_X, batch_y in train_loader:
             optimizer.zero_grad()
@@ -150,7 +155,12 @@ def train_nn_optuna(X_train, y_train, trial):
             loss.backward()
             optimizer.step()
 
-    return loss.item()
+            epoch_loss += loss.item()
+
+        # Add epoch loss to the total loss
+        total_loss += epoch_loss
+
+    return total_loss / epochs
 
 
 if __name__ == "__main__":
