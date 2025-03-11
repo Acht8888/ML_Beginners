@@ -15,9 +15,6 @@ from models.predict_model import (
     evaluate_model,
     evaluate_model_opt_threshold,
     predict_model,
-    evaluate_model_naive_bayes,
-    evaluate_model_opt_threshold_naive_bayes,
-    predict_model_naive_bayes,
 )
 from visualization.visualize import visualize_study, visualize_evaluate, visualize_train
 from utils import set_seed, DEFAULT_SEED, set_log
@@ -104,6 +101,7 @@ def main():
         required=True,
         help="Choose how to load hyperparameters: 'manual' to type in values, 'study' to load from a study",
     )
+    
 
     # Hyperparameters (for manual mode)
     train_parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
@@ -111,10 +109,19 @@ def main():
     train_parser.add_argument(
         "--hidden_size", type=int, default=15, help="Hidden layer size"
     )
+    
+    train_parser.add_argument("--population_size", type=int, default=50)
+    train_parser.add_argument("--mutation_rate", type=float, default=0.05)
+    train_parser.add_argument("--generations", type=int, default=100)
+    train_parser.add_argument("--selection_rate", type=float, default=0.2)
     train_parser.add_argument(
         "--epochs", type=int, default=100, help="Number of epochs"
     )
-    train_parser.add_argument("--var_smoothing", type=float, default=1e-9, help="Smoothing parameter for Naïve Bayes")
+    train_parser.add_argument("--max_depth", type=int, default=None, help="Maximum depth of the tree")
+    train_parser.add_argument("--min_samples_split", type=int, default=2, help="The minimum number of samples required to split an internal node")
+    train_parser.add_argument("--min_samples_leaf", type=int, default=1, help="The minimum number of samples required to be at a leaf node")
+    train_parser.add_argument("--criterion", type=str, default="gini", choices=["gini", "entropy"], help="The function to measure the quality of a split")
+    train_parser.add_argument( "--random_state", type=int, default=42, help="Random seed for reproducibility")
 
     # Study File Name (for study mode)
     train_parser.add_argument(
@@ -166,9 +173,6 @@ def main():
     eval_parser.add_argument(
         "--model_name", type=str, required=True, help="Name of the model file"
     )
-    eval_parser.add_argument(
-        "--var_smoothing", type=float, required=True, help="var_smoothing"
-    )
 
     # Visualize Command
     visualize_parser = subparsers.add_parser(
@@ -212,12 +216,6 @@ def main():
         required=True,
         help="Threshold for classification (e.g., 0.5)",
     )
-    predict_parser.add_argument(
-        "--var_smoothing",
-        type=float,
-        required=True,
-        help="Threshold for classification (e.g., 0.5)",
-    )
 
     X_train = None
     X_test = None
@@ -243,29 +241,22 @@ def main():
             elif args.command == "train":
                 logger.info(f"Training model: {args.model_name}")
                 if args.mode == "manual":
-                    if args.model_type == "neural_network":
-                        train_and_save(
-                            model_type=args.model_type,
-                            model_name=args.model_name,
-                            X_train=X_train,
-                            y_train=y_train,
-                            X_test=X_test,
-                            y_test=y_test,
-                            lr=args.lr,
-                            batch_size=args.batch_size,
-                            epochs=args.epochs,
-                            hidden_size=args.hidden_size,
-                        )
-                    elif args.model_type == "naive_bayes":
-                        train_and_save(
-                            model_type=args.model_type,
-                            model_name=args.model_name,
-                            X_train=X_train,
-                            y_train=y_train,
-                            X_test=X_test,
-                            y_test=y_test,
-                            var_smoothing =args.var_smoothing
-                        )
+                    train_and_save(
+                        model_type=args.model_type,
+                        model_name=args.model_name,
+                        X_train=X_train,
+                        y_train=y_train,
+                        X_test=X_test,
+                        y_test=y_test,
+                        lr=args.lr,
+                        batch_size=args.batch_size,
+                        epochs=args.epochs,
+                        hidden_size=args.hidden_size,
+                        population_size=args.population_size,
+                        mutation_rate=args.mutation_rate,
+                        generations=args.generations,
+                        selection_rate=args.selection_rate,
+                    )
                 elif args.mode == "study":
                     train_study_and_save(
                         model_type=args.model_type,
@@ -289,34 +280,18 @@ def main():
             elif args.command == "evaluate":
                 logger.info(f"Evaluating model: {args.model_name}")
                 if args.mode == "opt":
-                    if args.model_name == "na_naive_bayes_study":
-                        evaluate_model_opt_threshold_naive_bayes(
-                            file_name=args.model_name,
-                            var_smoothing = args.var_smoothing,
-                            X_test=X_test,
-                            y_test=y_test,
-                        )
-                    else:
-                        evaluate_model_opt_threshold(
-                            file_name=args.model_name,
-                            X_test=X_test,
-                            y_test=y_test,
-                        )
+                    evaluate_model_opt_threshold(
+                        file_name=args.model_name,
+                        X_test=X_test,
+                        y_test=y_test,
+                    )
                 elif args.mode == "manual":
-                    if args.model_name == "na_naive_bayes_study":
-                        evaluate_model_naive_bayes(
-                            file_name=args.model_name,
-                            var_smoothing = args.var_smoothing,
-                            X_test=X_test,
-                            y_test=y_test,
-                        )
-                    else:
-                        evaluate_model(
-                            file_name=args.model_name,
-                            X_test=X_test,
-                            y_test=y_test,
-                            threshold=args.threshold,
-                        )
+                    evaluate_model(
+                        file_name=args.model_name,
+                        X_test=X_test,
+                        y_test=y_test,
+                        threshold=args.threshold,
+                    )
             elif args.command == "visualize":
                 if args.mode == "study":
                     visualize_study(file_name=args.file_name)
@@ -325,21 +300,12 @@ def main():
                 elif args.mode == "train":
                     visualize_train(file_name=args.file_name)
             elif args.command == "predict":
-                if args.model_name == "na_naive_bayes_study":
-                    predict_model_naive_bayes(
-                        X_test=X_test,
-                        y_test=y_test,
-                        file_name=args.file_name,
-                        threshold=args.threshold,
-                        var_smoothing=args.var_smoothing,
-                    )
-                else:
-                    logger.info(f"Making predictions using model: {args.model_name}")
-                    predict_model(
-                        model_name=args.model_name,
-                        file_name=args.file_name,
-                        threshold=args.threshold,
-                    )
+                logger.info(f"Making predictions using model: {args.model_name}")
+                predict_model(
+                    model_name=args.model_name,
+                    file_name=args.file_name,
+                    threshold=args.threshold,
+                )
             else:
                 parser.print_help()
         except Exception as e:
@@ -362,7 +328,7 @@ def main():
 # visualize --mode study --file_name ne_neural_network_study
 
 # Use the optimal hyperparameters to create and train the model
-# train --model_type neural_network --model_name neural_network_study --mode study --file_nameexit ne_neural_network_study
+# train --model_type neural_network --model_name neural_network_study --mode study --file_name ne_neural_network_study
 # visualize --mode train --file_name ne_neural_network_study
 
 # Find and use the optimal threshold to evaluate the model
