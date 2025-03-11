@@ -3,13 +3,15 @@ import sys
 from sklearn.metrics import accuracy_score
 import optuna
 from optuna.samplers import TPESampler
-from models.decision_tree import (
-    DecisionTreeTrainer,
-)
+
 # Importing modules from your project
 from models.neural_network import (
     train_nn,
     train_nn_optuna,
+)
+
+from models.decision_tree import (
+    DecisionTreeTrainer,
 )
 
 from models.genetic_algorithm import GeneticAlgorithmTrainer

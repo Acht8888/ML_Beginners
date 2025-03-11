@@ -101,6 +101,7 @@ def main():
         required=True,
         help="Choose how to load hyperparameters: 'manual' to type in values, 'study' to load from a study",
     )
+    
 
     # Hyperparameters (for manual mode)
     train_parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
@@ -116,6 +117,11 @@ def main():
     train_parser.add_argument(
         "--epochs", type=int, default=100, help="Number of epochs"
     )
+    train_parser.add_argument("--max_depth", type=int, default=None, help="Maximum depth of the tree")
+    train_parser.add_argument("--min_samples_split", type=int, default=2, help="The minimum number of samples required to split an internal node")
+    train_parser.add_argument("--min_samples_leaf", type=int, default=1, help="The minimum number of samples required to be at a leaf node")
+    train_parser.add_argument("--criterion", type=str, default="gini", choices=["gini", "entropy"], help="The function to measure the quality of a split")
+    train_parser.add_argument( "--random_state", type=int, default=42, help="Random seed for reproducibility")
 
     # Study File Name (for study mode)
     train_parser.add_argument(
