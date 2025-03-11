@@ -5,11 +5,8 @@ import optuna
 from optuna.samplers import TPESampler
 
 # Importing modules from your project
-from models.neural_network import (
-    train_nn,
-    train_nn_optuna,
-)
-
+from models.decision_tree import DecisionTreeTrainer
+from models.neural_network import NeuralNetworkTrainer
 from models.genetic_algorithm import GeneticAlgorithmTrainer
 
 from utils import (
@@ -41,6 +38,7 @@ def train_and_save(model_type, model_name, X_train, y_train, X_val, y_val, **kwa
     :param y_test: Testing labels
     :param kwargs: Additional hyperparameters for the model
     """
+    trainer = None
     model = None
 
     print(f"Training {model_type} with the following hyperparameters:")
@@ -49,30 +47,36 @@ def train_and_save(model_type, model_name, X_train, y_train, X_val, y_val, **kwa
 
     # Select the model type and initialize it
     if model_type == "decision_tree":
-        pass
-    elif model_type == "neural_network":
-        model, train_losses, val_losses = train_nn(
+        trainer = DecisionTreeTrainer(
+            criterion=kwargs.get("criterion", "gini"),
+            max_depth=kwargs.get("max_depth", None),
+            min_samples_split=kwargs.get("min_samples_split", 2),
+            min_samples_leaf=kwargs.get("min_samples_leaf", 1),
+        )
+        model, train_losses, val_losses = trainer.train(
             X_train=X_train,
             y_train=y_train,
             X_val=X_val,
             y_val=y_val,
+        )
+    elif model_type == "neural_network":
+        trainer = NeuralNetworkTrainer(
+            input_size=26,
+            hidden_size=kwargs.get("hidden_size", 0.15),
             lr=kwargs.get("lr", 0.001),
             batch_size=kwargs.get("batch_size", 32),
             epochs=kwargs.get("epochs", 100),
-            hidden_size=kwargs.get("hidden_size", 0.15),
+        )
+        model, train_losses, val_losses = trainer.train(
+            X_train=X_train,
+            y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
         )
     elif model_type == "naive_bayes":
         pass
     elif model_type == "genetic_algorithm":
-        trainer = GeneticAlgorithmTrainer(
-            population_size=kwargs.get("population_size", 50),
-            mutation_rate=kwargs.get("mutation_rate", 0.05),
-            generations=kwargs.get("generations", 100),
-            selection_rate=kwargs.get("selection_rate", 0.2),
-            hidden_size=kwargs.get("hidden_size", 15),
-        )
-        print(f"Training {model_name} using Genetic Algorithm...")
-        model, losses = trainer.train(X_train, y_train)
+        pass
     elif model_type == "graphical_model":
         pass
     else:
@@ -123,10 +127,20 @@ def tune_and_save(
 
     # Select the model
     if model_type == "decision_tree":
-        pass
-    elif model_type == "neural_network":
+        trainer = DecisionTreeTrainer()
         study = tune_hyperparameters(
-            model_train_fn=train_nn_optuna,
+            model_train_fn=trainer.train_optuna,
+            X_train=X_train,
+            y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
+            n_trials=n_trials,
+            direction=direction,
+        )
+    elif model_type == "neural_network":
+        trainer = NeuralNetworkTrainer()
+        study = tune_hyperparameters(
+            model_train_fn=trainer.train_optuna,
             X_train=X_train,
             y_train=y_train,
             X_val=X_val,
@@ -137,14 +151,7 @@ def tune_and_save(
     elif model_type == "naive_bayes":
         pass
     elif model_type == "genetic_algorithm":
-        trainer = GeneticAlgorithmTrainer()
-        best_params = trainer.tune_hyperparameters_ga(
-            X_train, y_train, n_trials=n_trials
-        )
-        study = optuna.create_study(
-            direction="maximize", sampler=TPESampler(seed=DEFAULT_SEED)
-        )
-        study.set_user_attr("best_params", best_params)
+        pass
     elif model_type == "graphical_model":
         pass
     else:
@@ -173,7 +180,9 @@ def tune_hyperparameters(
         sampler=sampler,
     )
     study.optimize(
-        lambda trial: model_train_fn(X_train, y_train, X_val, y_val, trial),
+        lambda trial: model_train_fn(
+            X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, trial=trial
+        ),
         n_trials=n_trials,
     )
 

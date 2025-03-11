@@ -89,10 +89,10 @@ def handle_train(args, X_train, y_train, X_val, y_val):
             batch_size=args.batch_size,
             epochs=args.epochs,
             hidden_size=args.hidden_size,
-            population_size=args.population_size,
-            mutation_rate=args.mutation_rate,
-            generations=args.generations,
-            selection_rate=args.selection_rate,
+            criterion=args.criterion,
+            max_depth=args.max_depth,
+            min_samples_split=args.min_samples_split,
+            min_samples_leaf=args.min_samples_leaf,
         )
     elif args.mode == "study":
         train_study_and_save(
@@ -216,15 +216,37 @@ def main():
     )
 
     # Hyperparameters (for manual mode)
+
+    # Decision Tree
+    train_parser.add_argument(
+        "--criterion",
+        type=str,
+        default="gini",
+        choices=["gini", "entropy"],
+        help="The function to measure the quality of a split",
+    )
+    train_parser.add_argument(
+        "--max_depth", type=int, default=None, help="Maximum depth of the tree"
+    )
+    train_parser.add_argument(
+        "--min_samples_split",
+        type=int,
+        default=2,
+        help="The minimum number of samples required to split an internal node",
+    )
+    train_parser.add_argument(
+        "--min_samples_leaf",
+        type=int,
+        default=1,
+        help="The minimum number of samples required to be at a leaf node",
+    )
+
+    # Neural Network
     train_parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
     train_parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
     train_parser.add_argument(
         "--hidden_size", type=int, default=15, help="Hidden layer size"
     )
-    train_parser.add_argument("--population_size", type=int, default=50)
-    train_parser.add_argument("--mutation_rate", type=float, default=0.05)
-    train_parser.add_argument("--generations", type=int, default=100)
-    train_parser.add_argument("--selection_rate", type=float, default=0.2)
     train_parser.add_argument(
         "--epochs", type=int, default=100, help="Number of epochs"
     )
@@ -363,6 +385,10 @@ def main():
 # Additional Example:
 # train --model_type neural_network --model_name neural_network_manual --mode manual --lr 0.001 --batch_size 32 --epochs 20 --hidden_size 15
 
+# train --model_type decision_tree --model_name decision_tree_manual --mode manual --criterion gini --min_samples_split 2 --min_samples_leaf 1
+
+# tune --model_type decision_tree --model_name decision_tree_study --trials 5 --direction minimize
+
 # CLI Example:
 # Run the script
 # python src/main.py
@@ -372,7 +398,7 @@ def main():
 # load --file_name processed_data
 
 # Tune and visualize the study
-# tune --model_type neural_network --model_name neural_network_study --trials 20 --direction minimize
+# tune --model_type neural_network --model_name neural_network_study --trials 5 --direction minimize
 # visualize --mode study --file_name ne_neural_network_study
 
 # Use the optimal hyperparameters to create and train the model
