@@ -32,8 +32,15 @@ data_path = os.path.join(
 )
 
 
-def check_data_loaded(X_train, X_test, y_train, y_test):
-    if X_train is None or X_test is None or y_train is None or y_test is None:
+def check_data_loaded(X_train, X_val, X_test, y_train, y_val, y_test):
+    if (
+        X_train is None
+        or X_test is None
+        or X_val is None
+        or y_train is None
+        or y_val is None
+        or y_test is None
+    ):
         logger.warning(
             "Data not loaded. Please load the data first using the 'load' command."
         )
@@ -45,18 +52,29 @@ def handle_load_data(args):
     logger.info(f"Loading data: {args.file_name}")
     data_path = f"data/processed/{args.file_name}.csv"
     df = pd.read_csv(data_path)
-    X_train, X_test, y_train, y_test = train_test_split(
-        df.drop("Churn", axis=1), df["Churn"], test_size=0.2, random_state=DEFAULT_SEED
+
+    # Split data into training (60%) and temporary (40%)
+    X_train, X_temp, y_train, y_temp = train_test_split(
+        df.drop("Churn", axis=1), df["Churn"], test_size=0.4, random_state=DEFAULT_SEED
     )
+
+    # Split the temporary data into validation (20%) and test (20%) sets
+    X_val, X_test, y_val, y_test = train_test_split(
+        X_temp, y_temp, test_size=0.5, random_state=DEFAULT_SEED
+    )
+
+    # Convert to PyTorch tensors
     return (
         torch.tensor(X_train.values, dtype=torch.float32),
+        torch.tensor(X_val.values, dtype=torch.float32),
         torch.tensor(X_test.values, dtype=torch.float32),
         torch.tensor(y_train.values, dtype=torch.float32),
+        torch.tensor(y_val.values, dtype=torch.float32),
         torch.tensor(y_test.values, dtype=torch.float32),
     )
 
 
-def handle_train(args, X_train, y_train):
+def handle_train(args, X_train, y_train, X_val, y_val):
     """Handle training of the model based on provided args."""
     logger.info(f"Training model: {args.model_name}")
     if args.mode == "manual":
@@ -65,6 +83,8 @@ def handle_train(args, X_train, y_train):
             model_name=args.model_name,
             X_train=X_train,
             y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
             lr=args.lr,
             batch_size=args.batch_size,
             epochs=args.epochs,
@@ -80,11 +100,13 @@ def handle_train(args, X_train, y_train):
             model_name=args.model_name,
             X_train=X_train,
             y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
             file_name=args.file_name,
         )
 
 
-def handle_tune(args, X_train, y_train):
+def handle_tune(args, X_train, y_train, X_val, y_val):
     """Handle hyperparameter tuning."""
     logger.info(f"Tuning hyperparameters for model: {args.model_name}")
     tune_and_save(
@@ -92,6 +114,8 @@ def handle_tune(args, X_train, y_train):
         model_name=args.model_name,
         X_train=X_train,
         y_train=y_train,
+        X_val=X_val,
+        y_val=y_val,
         n_trials=args.trials,
         direction=args.direction,
     )
@@ -297,7 +321,7 @@ def main():
         help="Set a custom threshold for classification",
     )
 
-    X_train, X_test, y_train, y_test = None, None, None, None
+    X_train, X_val, X_test, y_train, y_val, y_test = None, None, None, None, None, None
 
     while True:
         # Prompt user for input
@@ -311,17 +335,19 @@ def main():
             args = parser.parse_args(user_input.split())
 
             if args.command in ["train", "tune", "evaluate", "visualize", "predict"]:
-                if not check_data_loaded(X_train, X_test, y_train, y_test):
+                if not check_data_loaded(
+                    X_train, X_val, X_test, y_train, y_val, y_test
+                ):
                     continue
 
             if args.command == "preprocess":
                 preprocess(args.file_name_raw, args.file_name_processed)
             elif args.command == "load":
-                X_train, X_test, y_train, y_test = handle_load_data(args)
+                X_train, X_val, X_test, y_train, y_val, y_test = handle_load_data(args)
             elif args.command == "train":
-                handle_train(args, X_train, y_train, X_test, y_test)
+                handle_train(args, X_train, y_train, X_val, y_val)
             elif args.command == "tune":
-                handle_tune(args, X_train, y_train)
+                handle_tune(args, X_train, y_train, X_val, y_val)
             elif args.command == "evaluate":
                 handle_evaluate(args, X_test, y_test)
             elif args.command == "visualize":
@@ -346,7 +372,7 @@ def main():
 # load --file_name processed_data
 
 # Tune and visualize the study
-# tune --model_type neural_network --model_name neural_network_study --trials 5 --direction minimize
+# tune --model_type neural_network --model_name neural_network_study --trials 20 --direction minimize
 # visualize --mode study --file_name ne_neural_network_study
 
 # Use the optimal hyperparameters to create and train the model

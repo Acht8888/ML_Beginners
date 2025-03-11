@@ -97,11 +97,13 @@ def load_evaluation(file_name):
     return joblib.load(final_evaluation_path)
 
 
-def save_training(losses, model_type, model_name):
+def save_training(train_losses, val_losses, model_type, model_name):
     os.makedirs(training_path, exist_ok=True)
     training_filename = f"{model_type[0:2]}_{model_name}.pkl"
     final_training_path = os.path.join(training_path, training_filename)
-    joblib.dump({"losses": losses}, final_training_path)
+    joblib.dump(
+        {"train_losses": train_losses, "val_losses": val_losses}, final_training_path
+    )
     logger.info(f"Training results saved to {final_training_path}.")
 
 

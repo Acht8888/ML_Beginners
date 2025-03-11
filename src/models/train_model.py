@@ -29,7 +29,7 @@ set_seed()
 logger = set_log()
 
 
-def train_and_save(model_type, model_name, X_train, y_train, **kwargs):
+def train_and_save(model_type, model_name, X_train, y_train, X_val, y_val, **kwargs):
     """
     Train and save the model of the specified type.
 
@@ -51,9 +51,11 @@ def train_and_save(model_type, model_name, X_train, y_train, **kwargs):
     if model_type == "decision_tree":
         pass
     elif model_type == "neural_network":
-        model, losses = train_nn(
+        model, train_losses, val_losses = train_nn(
             X_train=X_train,
             y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
             lr=kwargs.get("lr", 0.001),
             batch_size=kwargs.get("batch_size", 32),
             epochs=kwargs.get("epochs", 100),
@@ -78,12 +80,29 @@ def train_and_save(model_type, model_name, X_train, y_train, **kwargs):
         raise ValueError(f"Model '{model_type}' not recognized!")
 
     if model:
-        save_training(losses, model_type, model_name)
+        save_training(train_losses, val_losses, model_type, model_name)
         save_model(model, model_type, model_name)
 
 
+def train_study_and_save(
+    model_type, model_name, X_train, y_train, X_val, y_val, file_name
+):
+    study = load_study(file_name)
+
+    train_and_save(
+        model_type, model_name, X_train, y_train, X_val, y_val, **study.best_params
+    )
+
+
 def tune_and_save(
-    model_type, model_name, X_train, y_train, n_trials, direction="minimize"
+    model_type,
+    model_name,
+    X_train,
+    y_train,
+    X_val,
+    y_val,
+    n_trials,
+    direction="minimize",
 ):
     """
     Tune hyperparameters using Optuna and save the best model.
@@ -110,6 +129,8 @@ def tune_and_save(
             model_train_fn=train_nn_optuna,
             X_train=X_train,
             y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
             n_trials=n_trials,
             direction=direction,
         )
@@ -135,7 +156,7 @@ def tune_and_save(
 
 
 def tune_hyperparameters(
-    model_train_fn, X_train, y_train, n_trials=10, direction="minimize"
+    model_train_fn, X_train, y_train, X_val, y_val, n_trials=10, direction="minimize"
 ):
     """
     Tune hyperparameters of the neural network using Optuna.
@@ -152,23 +173,13 @@ def tune_hyperparameters(
         sampler=sampler,
     )
     study.optimize(
-        lambda trial: model_train_fn(X_train, y_train, trial),
+        lambda trial: model_train_fn(X_train, y_train, X_val, y_val, trial),
         n_trials=n_trials,
     )
 
     logger.info("Best Hyperparameters: %s", study.best_params)
 
     return study
-
-
-def train_study_and_save(
-    model_type, model_name, X_train, y_train, X_test, y_test, file_name
-):
-    study = load_study(file_name)
-
-    train_and_save(
-        model_type, model_name, X_train, y_train, X_test, y_test, **study.best_params
-    )
 
 
 if __name__ == "__main__":

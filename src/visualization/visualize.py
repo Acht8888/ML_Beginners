@@ -224,13 +224,20 @@ def visualize_evaluate(file_name):
     visualize_precision_recall_curve(true_labels, probabilities_labels, plot_dir)
 
 
-def visualize_loss_curve(losses, plot_dir):
-    logger.info(f"Plotting loss curve.")
-    # Plot the loss curve
-    plt.plot(losses)
+def visualize_loss_curve(train_losses, val_losses, plot_dir):
+    logger.info(f"Plotting loss curves.")
+
+    # Plot the training loss and validation loss on the same plot
+    plt.plot(train_losses, label="Training Loss", color="blue")
+    plt.plot(val_losses, label="Validation Loss", color="orange")
+
+    # Labeling the plot
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
-    plt.title("Training Loss")
+    plt.title("Training and Validation Loss Curves")
+
+    # Adding a legend
+    plt.legend()
 
     # Save the plot
     loss_curve_filename = os.path.join(plot_dir, "tr_loss_curve.png")
@@ -241,7 +248,8 @@ def visualize_train(file_name):
     logger.info(f"Loading training results from file: {file_name}")
     # Load the saved evaluation results
     data = load_training(file_name)
-    losses = data["losses"]
+    train_losses = data["train_losses"]
+    val_losses = data["val_losses"]
 
     # Define the directory where the plot will be saved
     plot_dir = os.path.join(
@@ -249,7 +257,7 @@ def visualize_train(file_name):
     )
     os.makedirs(plot_dir, exist_ok=True)
 
-    visualize_loss_curve(losses, plot_dir)
+    visualize_loss_curve(train_losses, val_losses, plot_dir)
 
 
 if __name__ == "__main__":
