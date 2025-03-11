@@ -4,6 +4,7 @@ import joblib
 import random
 import logging
 import numpy as np
+import pandas as pd
 
 
 # Define the path to the model
@@ -17,6 +18,10 @@ evaluation_path = os.path.join(
 )
 
 training_path = os.path.join(os.path.dirname(__file__), "..", "storage", "trainings")
+
+prediction_path = os.path.join(os.path.dirname(__file__), "..", "data", "predicted")
+
+processed_path = os.path.join(os.path.dirname(__file__), "..", "data", "processed")
 
 DEFAULT_SEED = 42
 
@@ -104,3 +109,17 @@ def load_training(file_name):
     final_training_path = os.path.join(training_path, f"{file_name}.pkl")
     logger.info(f"Training {file_name} loaded successfully.")
     return joblib.load(final_training_path)
+
+
+def save_prediction(df, file_name):
+    os.makedirs(prediction_path, exist_ok=True)
+    prediction_filename = f"{file_name}.csv"
+    final_prediction_path = os.path.join(prediction_path, prediction_filename)
+    df.to_csv(final_prediction_path, index=False)
+    logger.info(f"Prediction saved to {final_prediction_path}.")
+
+
+def load_processed(file_name):
+    final_processed_path = os.path.join(processed_path, f"{file_name}.csv")
+    logger.info(f"Processed file {file_name} loaded successfully.")
+    return pd.read_csv(final_processed_path)

@@ -3,6 +3,7 @@ import os
 import sys
 from sklearn.metrics import accuracy_score
 import numpy as np
+from sklearn.model_selection import KFold
 from sklearn.metrics import (
     accuracy_score,
     precision_score,
@@ -14,7 +15,15 @@ from sklearn.metrics import (
 
 
 # Importing modules from your project
-from utils import set_seed, DEFAULT_SEED, set_log, load_model, save_evaluation
+from utils import (
+    set_seed,
+    DEFAULT_SEED,
+    set_log,
+    load_model,
+    load_processed,
+    save_evaluation,
+    save_prediction,
+)
 
 # Set the random seed for reproducibility
 set_seed()
@@ -93,23 +102,6 @@ def evaluate_model(file_name, X_test, y_test, threshold):
     save_evaluation(file_name, y_test, y_probs, y_pred)
 
 
-def predict_model(model, X, threshold):
-    """
-    Evaluate the trained model on new data and return predicted labels.
-
-    :param model: The trained model to be used for predictions.
-    :param X: Input features (NumPy array or Pandas DataFrame).
-    :return: Predicted labels as a NumPy array, where each element is 0 or 1.
-    """
-    model.eval()
-
-    with torch.no_grad():
-        outputs = model(X).squeeze()
-        predicted = (outputs > threshold).int()
-
-    return predicted
-
-
 def evaluate_model_opt_threshold(file_name, X_test, y_test):
     """
     Evaluate the model on the test set using the optimal threshold.
@@ -141,6 +133,58 @@ def evaluate_model_opt_threshold(file_name, X_test, y_test):
         os.path.dirname(__file__), "..", "..", "storage", "evaluations", file_name
     )
     save_evaluation(file_name, y_test, y_probs, y_pred)
+
+
+# # NOTE: WIP
+# def evaluate_model_cross_validation(model, X, y, k=5):
+#     """
+#     Perform K-Fold Cross-Validation on the model.
+
+#     :param model: The model to evaluate
+#     :param X: Features
+#     :param y: Labels
+#     :param k: Number of folds for cross-validation (default: 5)
+#     :return: Mean accuracy across K folds
+#     """
+#     kf = KFold(n_splits=k, shuffle=True, random_state=DEFAULT_SEED)
+#     accuracies = []
+
+#     for train_idx, test_idx in kf.split(X):
+#         X_train, X_val = X[train_idx], X[test_idx]
+#         y_train, y_val = y[train_idx], y[test_idx]
+
+#         model.train_model(X_train, y_train)  # Retrain for each fold
+
+#         # Evaluate model
+#         accuracy = evaluate_model(model, X_val, y_val)
+#         accuracies.append(accuracy)
+
+#     mean_accuracy = np.mean(accuracies)
+#     return mean_accuracy
+
+
+def predict_model(model_name, file_name, threshold):
+    """
+    Evaluate the trained model on new data and return predicted labels.
+
+    :param model: The trained model to be used for predictions.
+    :param X: Input features (NumPy array or Pandas DataFrame).
+    :return: Predicted labels as a NumPy array, where each element is 0 or 1.
+    """
+    model = load_model(model_name)
+    model.eval()
+
+    processed_data = load_processed(file_name)
+    processed_data = processed_data.drop(columns=["Churn"], errors="ignore")
+    processed_tensor = torch.tensor(processed_data.values, dtype=torch.float32)
+
+    with torch.no_grad():
+        outputs = model(processed_tensor).squeeze()
+        predicted = (outputs > threshold).int().numpy()
+
+    processed_data["Predicted Churn"] = predicted
+
+    save_prediction(processed_data, file_name)
 
 
 if __name__ == "__main__":
