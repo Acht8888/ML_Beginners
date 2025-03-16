@@ -20,7 +20,7 @@ search_space = {
     "lr": [1e-5, 1e-1],  # Log scale for learning rate
     "batch_size": [32, 128],  # Batch size range
     "hidden_size": [8, 256],  # Hidden layer size range
-    "epochs": [10, 100],  # Number of epochs range
+    "epochs": [10, 200],  # Number of epochs range
 }
 
 
