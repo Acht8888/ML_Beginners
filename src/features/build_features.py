@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
 # Importing modules from your project
-from utils import set_seed, set_log
+from src.utils import set_seed, set_log
 
 
 # Set the random seed for reproducibility

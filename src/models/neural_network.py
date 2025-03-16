@@ -8,7 +8,7 @@ import sys
 
 
 # Importing modules from your project
-from utils import set_seed, DEFAULT_SEED, set_log
+from src.utils import set_seed, DEFAULT_SEED, set_log
 
 # Set the random seed for reproducibility
 set_seed()

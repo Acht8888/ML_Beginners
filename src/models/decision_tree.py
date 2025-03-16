@@ -5,10 +5,9 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score, log_loss
 from optuna.samplers import TPESampler
 from torch.utils.data import DataLoader, TensorDataset
-from utils import set_seed, DEFAULT_SEED, set_log
 
 # Importing modules from your project
-from utils import set_seed, DEFAULT_SEED, set_log
+from src.utils import set_seed, DEFAULT_SEED, set_log
 
 # Set the random seed for reproducibility
 set_seed()

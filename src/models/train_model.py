@@ -5,11 +5,11 @@ import optuna
 from optuna.samplers import TPESampler
 
 # Importing modules from your project
-from models.decision_tree import DecisionTreeTrainer
-from models.neural_network import NeuralNetworkTrainer
-from models.genetic_algorithm import GeneticAlgorithmTrainer
+from src.models.decision_tree import DecisionTreeTrainer
+from src.models.neural_network import NeuralNetworkTrainer
+from src.models.genetic_algorithm import GeneticAlgorithmTrainer
 
-from utils import (
+from src.utils import (
     set_seed,
     DEFAULT_SEED,
     set_log,

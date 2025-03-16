@@ -1,12 +1,11 @@
-import sys
 import os
 import pandas as pd
 
 # Importing modules from your project
-from features.build_features import (
+from src.features.build_features import (
     build_features,
 )
-from utils import set_seed, set_log
+from src.utils import set_seed, set_log
 
 
 # Set the random seed for reproducibility
@@ -57,8 +56,3 @@ def preprocess(file_name_raw, file_name_processed):
     df = load_data(raw_data_path)
     df_processed = build_features(df)
     save_data(df_processed, processed_data_path)
-
-
-if __name__ == "__main__":
-    src_path = os.path.join(os.path.dirname(__file__), "..")
-    sys.path.append(src_path)

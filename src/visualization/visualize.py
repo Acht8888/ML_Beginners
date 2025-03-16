@@ -14,7 +14,7 @@ import numpy as np
 
 
 # Importing modules from your project
-from utils import (
+from src.utils import (
     set_seed,
     DEFAULT_SEED,
     set_log,
