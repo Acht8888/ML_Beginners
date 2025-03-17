@@ -7,6 +7,7 @@ from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
 from collections import defaultdict
 from matplotlib import pyplot as plt
 from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import confusion_matrix
 
 
 class NaiveBayesModel(BaseEstimator, ClassifierMixin):
@@ -123,4 +124,5 @@ class NaiveBayesModel(BaseEstimator, ClassifierMixin):
 
         y_predict = X.apply(lambda x: predict_row(x), axis=1)
         return y_predict
+    
     
