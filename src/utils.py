@@ -7,10 +7,8 @@ import numpy as np
 import pandas as pd
 
 
-# Define the path to the model
 model_path = os.path.join(os.path.dirname(__file__), "..", "models", "experiments")
 
-# Define the path to the study
 study_path = os.path.join(os.path.dirname(__file__), "..", "storage", "studies")
 
 evaluation_path = os.path.join(
@@ -43,9 +41,6 @@ def set_log():
 
     return logging.getLogger(__name__)
 
-
-# Set the random seed for reproducibility
-set_seed()
 
 # Configure logging for better visibility in production
 logger = set_log()
@@ -90,7 +85,6 @@ def save_evaluation(file_name, y_test, y_probs, y_pred):
     logger.info(f"Evaluation results saved to {final_evaluation_path}.")
 
 
-# Function to load evaluation results
 def load_evaluation(file_name):
     final_evaluation_path = os.path.join(evaluation_path, f"{file_name}.pkl")
     logger.info(f"Evaluation {file_name} loaded successfully.")

@@ -12,7 +12,7 @@ from sklearn.metrics import accuracy_score
 import optuna
 from optuna.samplers import TPESampler
 
-from utils import set_seed, DEFAULT_SEED
+from src.utils import set_seed, DEFAULT_SEED
 
 set_seed()
 

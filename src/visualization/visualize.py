@@ -14,28 +14,15 @@ import numpy as np
 
 
 # Importing modules from your project
-from utils import (
-    set_seed,
-    DEFAULT_SEED,
+from src.utils import (
     set_log,
     load_study,
     load_evaluation,
     load_training,
 )
 
-# Set the random seed for reproducibility
-set_seed()
-
 # Configure logging for better visibility in production
 logger = set_log()
-
-
-# Function to save a plot
-def save_plot(plot_filename):
-    plt.savefig(plot_filename)
-    plt.close()
-
-    logger.info(f"Plot saved as {plot_filename}")
 
 
 # Function to visualize the Optuna study optimization history
@@ -48,8 +35,8 @@ def visualize_optimization_history(study, plot_dir):
     """
     logger.info(f"Plotting optimization history for study.")
     fig = optuna.visualization.matplotlib.plot_optimization_history(study)
-    plot_filename = os.path.join(plot_dir, "st_optimization_history.png")
-    save_plot(plot_filename)
+
+    plt.show()
 
 
 # Function to visualize the parameter slice plot
@@ -62,8 +49,8 @@ def visualize_slice_plot(study, plot_dir):
     """
     logger.info(f"Plotting slice plot for study.")
     fig = optuna.visualization.matplotlib.plot_slice(study)
-    plot_filename = os.path.join(plot_dir, "st_slice_plot.png")
-    save_plot(plot_filename)
+
+    plt.show()
 
 
 # Function to visualize the parameter importance plot
@@ -76,8 +63,8 @@ def visualize_param_importance(study, plot_dir):
     """
     logger.info(f"Plotting parameter importance for study.")
     fig = optuna.visualization.matplotlib.plot_param_importances(study)
-    plot_filename = os.path.join(plot_dir, "st_parameter_importance.png")
-    save_plot(plot_filename)
+
+    plt.show()
 
 
 # Main function to visualize the Optuna study results
@@ -114,7 +101,8 @@ def visualize_confusion_matrix(true_labels, predicted_labels, plot_dir):
 
     cm_plot_filename = os.path.join(plot_dir, "ev_confusion_matrix.png")
     cm_display.plot(cmap=plt.cm.Blues)
-    save_plot(cm_plot_filename)
+
+    plt.show()
 
 
 # Function to visualize the ROC curve
@@ -165,8 +153,7 @@ def visualize_roc_curve(true_labels, probabilities_labels, plot_dir):
     plt.title("Receiver Operating Characteristic")
     plt.legend(loc="lower right")
 
-    roc_curve_filename = os.path.join(plot_dir, "ev_roc_curve.png")
-    save_plot(roc_curve_filename)
+    plt.show()
 
 
 # Function to visualize the Precision-Recall curve
@@ -197,9 +184,7 @@ def visualize_precision_recall_curve(true_labels, probabilities_labels, plot_dir
     plt.legend(loc="lower left")
     plt.grid(True)
 
-    # Save the plot
-    pr_curve_filename = os.path.join(plot_dir, "ev_precision_recall_curve.png")
-    save_plot(pr_curve_filename)
+    plt.show()
 
 
 # Main function to visualize evaluation results
@@ -239,9 +224,7 @@ def visualize_loss_curve(train_losses, val_losses, plot_dir):
     # Adding a legend
     plt.legend()
 
-    # Save the plot
-    loss_curve_filename = os.path.join(plot_dir, "tr_loss_curve.png")
-    save_plot(loss_curve_filename)
+    plt.show()
 
 
 def visualize_train(file_name):
