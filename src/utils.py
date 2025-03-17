@@ -5,6 +5,8 @@ import random
 import logging
 import numpy as np
 import pandas as pd
+from matplotlib import pyplot as plt
+from sklearn.model_selection import GridSearchCV
 
 
 # Define the path to the model
@@ -123,3 +125,5 @@ def load_processed(file_name):
     final_processed_path = os.path.join(processed_path, f"{file_name}.csv")
     logger.info(f"Processed file {file_name} loaded successfully.")
     return pd.read_csv(final_processed_path)
+
+
