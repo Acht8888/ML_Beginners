@@ -241,8 +241,3 @@ def visualize_train(file_name):
     os.makedirs(plot_dir, exist_ok=True)
 
     visualize_loss_curve(train_losses, val_losses, plot_dir)
-
-
-if __name__ == "__main__":
-    src_path = os.path.join(os.path.dirname(__file__), "..")
-    sys.path.append(src_path)

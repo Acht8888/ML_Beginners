@@ -15,7 +15,7 @@ set_seed()
 logger = set_log()
 
 
-def create_dataset(file_name):
+def create_and_split_dataset(file_name):
     logger.info(f"Loading data: {file_name}")
     base_dir = os.path.dirname(__file__)
     data_path = os.path.join(
@@ -41,4 +41,23 @@ def create_dataset(file_name):
         torch.tensor(y_train.values, dtype=torch.float32),
         torch.tensor(y_val.values, dtype=torch.float32),
         torch.tensor(y_test.values, dtype=torch.float32),
+    )
+
+
+def create_dataset(file_name):
+    logger.info(f"Loading data: {file_name}")
+    base_dir = os.path.dirname(__file__)
+    data_path = os.path.join(
+        base_dir, "..", "..", "data", "processed", f"{file_name}.csv"
+    )
+    df = pd.read_csv(data_path)
+
+    # Extract features (X) and labels (y)
+    X = df.drop("Churn", axis=1)  # Features (all columns except 'Churn')
+    y = df["Churn"]  # Labels (Churn column)
+
+    # Return tensors for X and y
+    return (
+        torch.tensor(X.values, dtype=torch.float32),
+        torch.tensor(y.values, dtype=torch.float32),
     )

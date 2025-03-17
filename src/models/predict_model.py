@@ -3,7 +3,6 @@ import os
 import sys
 from sklearn.metrics import accuracy_score
 import numpy as np
-from sklearn.model_selection import KFold
 from sklearn.metrics import (
     accuracy_score,
     precision_score,
@@ -89,6 +88,33 @@ def evaluate_model(file_name, X_test, y_test, threshold):
     return metrics
 
 
+def evaluate_model_2(model, X_test, y_test, threshold):
+    """
+    Evaluate the model on the test set and log metrics.
+
+    :param file_name: The name of the saved model
+    :param X_test: Test features
+    :param y_test: Test labels
+    :param threshold: The decision threshold for classification (float between 0 and 1).
+    :return: Accuracy score
+    """
+    # Get predictions
+    model.eval()  # Set model to evaluation mode
+
+    with torch.no_grad():
+        y_probs = model(X_test).squeeze()
+        y_pred = (y_probs > threshold).int()
+
+    # Calculate metrics
+    metrics = calculate_metrics(y_test, y_pred, y_probs)
+
+    # Log metrics
+    for metric_name, value in metrics.items():
+        logger.info(f"{metric_name.capitalize()}: {value:.4f}")
+
+    return metrics
+
+
 def evaluate_model_opt_threshold(file_name, X_test, y_test):
     """
     Evaluate the model on the test set using the optimal threshold.
@@ -126,34 +152,6 @@ def evaluate_model_opt_threshold(file_name, X_test, y_test):
     return metrics
 
 
-# # NOTE: WIP
-# def evaluate_model_cross_validation(model, X, y, k=5):
-#     """
-#     Perform K-Fold Cross-Validation on the model.
-
-#     :param model: The model to evaluate
-#     :param X: Features
-#     :param y: Labels
-#     :param k: Number of folds for cross-validation (default: 5)
-#     :return: Mean accuracy across K folds
-#     """
-#     kf = KFold(n_splits=k, shuffle=True, random_state=DEFAULT_SEED)
-#     accuracies = []
-
-#     for train_idx, test_idx in kf.split(X):
-#         X_train, X_val = X[train_idx], X[test_idx]
-#         y_train, y_val = y[train_idx], y[test_idx]
-
-#         model.train_model(X_train, y_train)  # Retrain for each fold
-
-#         # Evaluate model
-#         accuracy = evaluate_model(model, X_val, y_val)
-#         accuracies.append(accuracy)
-
-#     mean_accuracy = np.mean(accuracies)
-#     return mean_accuracy
-
-
 def predict_model(model_name, file_name, threshold):
     """
     Evaluate the trained model on new data and return predicted labels.
@@ -176,8 +174,3 @@ def predict_model(model_name, file_name, threshold):
     processed_data["Predicted Churn"] = predicted
 
     save_prediction(processed_data, file_name)
-
-
-if __name__ == "__main__":
-    src_path = os.path.join(os.path.dirname(__file__), "..")
-    sys.path.append(src_path)
