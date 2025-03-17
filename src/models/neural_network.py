@@ -252,8 +252,3 @@ class NeuralNetworkTrainer:
             total_val_loss += avg_val_loss
 
         return total_val_loss / self.epochs
-
-
-if __name__ == "__main__":
-    src_path = os.path.join(os.path.dirname(__file__), "..")
-    sys.path.append(src_path)

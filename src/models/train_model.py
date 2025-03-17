@@ -3,11 +3,17 @@ import sys
 from sklearn.metrics import accuracy_score
 import optuna
 from optuna.samplers import TPESampler
+from sklearn.model_selection import KFold
 
 # Importing modules from your project
 from src.models.decision_tree import DecisionTreeTrainer
 from src.models.neural_network import NeuralNetworkTrainer
 from src.models.genetic_algorithm import GeneticAlgorithmTrainer
+from src.models.predict_model import (
+    evaluate_model_2,
+    evaluate_model_opt_threshold,
+    predict_model,
+)
 
 from src.utils import (
     DEFAULT_SEED,
@@ -199,6 +205,74 @@ def tune_hyperparameters(
     return study
 
 
-if __name__ == "__main__":
-    src_path = os.path.join(os.path.dirname(__file__), "..")
-    sys.path.append(src_path)
+def cross_validation(model_type, X, y, k_folds, threshold, **kwargs):
+    kf = KFold(n_splits=k_folds, shuffle=True, random_state=DEFAULT_SEED)
+    metrics_list = {
+        "accuracy": [],
+        "precision": [],
+        "recall": [],
+        "f1": [],
+        "roc_auc": [],
+    }
+
+    if model_type == "decision_tree":
+        pass
+    elif model_type == "neural_network":
+        trainer = NeuralNetworkTrainer(
+            input_size=26,
+            hidden_size=kwargs.get("hidden_size", 15),
+            num_hidden_layers=kwargs.get("num_hidden_layers", 1),
+            dropout_rate=kwargs.get("dropout_rate", 0.5),
+            lr=kwargs.get("lr", 1e-3),
+            weight_decay=kwargs.get("weight_decay", 1e-4),
+            batch_size=kwargs.get("batch_size", 32),
+            epochs=kwargs.get("epochs", 100),
+        )
+
+    elif model_type == "naive_bayes":
+        pass
+    elif model_type == "genetic_algorithm":
+        pass
+    elif model_type == "graphical_model":
+        pass
+    else:
+        logger.error(f"Model '{model_type}' not recognized!")
+        raise ValueError(f"Model '{model_type}' not recognized!")
+
+    for fold, (train_index, val_index) in enumerate(kf.split(X)):
+        logger.info(f"Evaluating fold {fold + 1}/{k_folds}")
+
+        # Split the data into train and validation for this fold
+        X_train, X_val = X[train_index], X[val_index]
+        y_train, y_val = y[train_index], y[val_index]
+
+        model, train_losses, val_losses = trainer.train(
+            X_train=X_train,
+            y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
+        )
+
+        # Evaluate model
+        metrics = evaluate_model_2(model, X_val, y_val, threshold)
+        metrics_list["accuracy"].append(metrics["accuracy"])
+        metrics_list["precision"].append(metrics["precision"])
+        metrics_list["recall"].append(metrics["recall"])
+        metrics_list["f1"].append(metrics["f1"])
+        metrics_list["roc_auc"].append(metrics["roc_auc"])
+
+        # Log metrics for this fold
+        logger.info(
+            f"Fold {fold + 1} - Accuracy: {metrics["accuracy"]:.4f}, Precision: {metrics["precision"]:.4f}, Recall: {metrics["recall"]:.4f}, F1: {metrics["f1"]:.4f}, ROC AUC: {metrics["roc_auc"]:.4f}"
+        )
+
+    # Calculate average metrics across all folds
+    avg_metrics = {
+        metric: sum(values) / k_folds for metric, values in metrics_list.items()
+    }
+
+    # Log averaged metrics
+    logger.info(
+        f"Average Metrics - Accuracy: {avg_metrics['accuracy']:.4f}, Precision: {avg_metrics['precision']:.4f}, Recall: {avg_metrics['recall']:.4f}, F1: {avg_metrics['f1']:.4f}, ROC AUC: {avg_metrics['roc_auc']:.4f}"
+    )
+    return avg_metrics
