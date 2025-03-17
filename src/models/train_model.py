@@ -5,18 +5,11 @@ import optuna
 from optuna.samplers import TPESampler
 
 # Importing modules from your project
-from models.neural_network import (
-    train_nn,
-    train_nn_optuna,
-)
+from src.models.decision_tree import DecisionTreeTrainer
+from src.models.neural_network import NeuralNetworkTrainer
+from src.models.genetic_algorithm import GeneticAlgorithmTrainer
 
-from models.decision_tree import (
-    DecisionTreeTrainer,
-)
-
-from models.genetic_algorithm import GeneticAlgorithmTrainer
-
-from utils import (
+from src.utils import (
     set_seed,
     DEFAULT_SEED,
     set_log,
@@ -33,7 +26,7 @@ set_seed()
 logger = set_log()
 
 
-def train_and_save(model_type, model_name, X_train, y_train, X_test, y_test, **kwargs):
+def train_and_save(model_type, model_name, X_train, y_train, X_val, y_val, **kwargs):
     """
     Train and save the model of the specified type.
 
@@ -45,6 +38,7 @@ def train_and_save(model_type, model_name, X_train, y_train, X_test, y_test, **k
     :param y_test: Testing labels
     :param kwargs: Additional hyperparameters for the model
     """
+    trainer = None
     model = None
 
     print(f"Training {model_type} with the following hyperparameters:")
@@ -53,29 +47,36 @@ def train_and_save(model_type, model_name, X_train, y_train, X_test, y_test, **k
 
     # Select the model type and initialize it
     if model_type == "decision_tree":
-        trainer= DecisionTreeTrainer(
+        trainer = DecisionTreeTrainer(
+            criterion=kwargs.get("criterion", "gini"),
             max_depth=kwargs.get("max_depth", None),
             min_samples_split=kwargs.get("min_samples_split", 2),
             min_samples_leaf=kwargs.get("min_samples_leaf", 1),
-            criterion=kwargs.get("criterion", "gini"),
-            random_state=kwargs.get("random_state", 42),
         )
-        print(f"Training {model_name} using Decision Tree...")
-        model, losses = trainer.train(X_train, y_train)
+        model, train_losses, val_losses = trainer.train(
+            X_train=X_train,
+            y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
+        )
     elif model_type == "neural_network":
-        model, losses = train_nn(X_train=X_train, y_train=y_train, **kwargs)
+        trainer = NeuralNetworkTrainer(
+            input_size=26,
+            hidden_size=kwargs.get("hidden_size", 0.15),
+            lr=kwargs.get("lr", 0.001),
+            batch_size=kwargs.get("batch_size", 32),
+            epochs=kwargs.get("epochs", 100),
+        )
+        model, train_losses, val_losses = trainer.train(
+            X_train=X_train,
+            y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
+        )
     elif model_type == "naive_bayes":
         pass
     elif model_type == "genetic_algorithm":
-        trainer = GeneticAlgorithmTrainer(
-            population_size=kwargs.get("population_size", 50),
-            mutation_rate=kwargs.get("mutation_rate", 0.05),
-            generations=kwargs.get("generations", 100),
-            selection_rate=kwargs.get("selection_rate", 0.2),
-            hidden_size=kwargs.get("hidden_size", 15),
-        )
-        print(f"Training {model_name} using Genetic Algorithm...")
-        model, losses = trainer.train(X_train, y_train)
+        pass
     elif model_type == "graphical_model":
         pass
     else:
@@ -83,12 +84,29 @@ def train_and_save(model_type, model_name, X_train, y_train, X_test, y_test, **k
         raise ValueError(f"Model '{model_type}' not recognized!")
 
     if model:
-        save_training(losses, model_type, model_name)
+        save_training(train_losses, val_losses, model_type, model_name)
         save_model(model, model_type, model_name)
 
 
+def train_study_and_save(
+    model_type, model_name, X_train, y_train, X_val, y_val, file_name
+):
+    study = load_study(file_name)
+
+    train_and_save(
+        model_type, model_name, X_train, y_train, X_val, y_val, **study.best_params
+    )
+
+
 def tune_and_save(
-    model_type, model_name, X_train, y_train, n_trials, direction="minimize"
+    model_type,
+    model_name,
+    X_train,
+    y_train,
+    X_val,
+    y_val,
+    n_trials,
+    direction="minimize",
 ):
     """
     Tune hyperparameters using Optuna and save the best model.
@@ -110,24 +128,30 @@ def tune_and_save(
     # Select the model
     if model_type == "decision_tree":
         trainer = DecisionTreeTrainer()
-        best_params = trainer.tune_hyperparameters(X_train, y_train, n_trials=n_trials)
-        study = optuna.create_study(direction="maximize", sampler=TPESampler(seed=DEFAULT_SEED))
-        study.set_user_attr("best_params", best_params)
-    elif model_type == "neural_network":
         study = tune_hyperparameters(
-            model_train_fn=train_nn_optuna,
+            model_train_fn=trainer.train_optuna,
             X_train=X_train,
             y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
+            n_trials=n_trials,
+            direction=direction,
+        )
+    elif model_type == "neural_network":
+        trainer = NeuralNetworkTrainer()
+        study = tune_hyperparameters(
+            model_train_fn=trainer.train_optuna,
+            X_train=X_train,
+            y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
             n_trials=n_trials,
             direction=direction,
         )
     elif model_type == "naive_bayes":
         pass
     elif model_type == "genetic_algorithm":
-        trainer = GeneticAlgorithmTrainer()
-        best_params = trainer.tune_hyperparameters_ga(X_train, y_train, n_trials=n_trials)
-        study = optuna.create_study(direction="maximize", sampler=TPESampler(seed=DEFAULT_SEED))
-        study.set_user_attr("best_params", best_params)
+        pass
     elif model_type == "graphical_model":
         pass
     else:
@@ -139,7 +163,7 @@ def tune_and_save(
 
 
 def tune_hyperparameters(
-    model_train_fn, X_train, y_train, n_trials=10, direction="minimize"
+    model_train_fn, X_train, y_train, X_val, y_val, n_trials=10, direction="minimize"
 ):
     """
     Tune hyperparameters of the neural network using Optuna.
@@ -156,23 +180,15 @@ def tune_hyperparameters(
         sampler=sampler,
     )
     study.optimize(
-        lambda trial: model_train_fn(X_train, y_train, trial),
+        lambda trial: model_train_fn(
+            X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, trial=trial
+        ),
         n_trials=n_trials,
     )
 
     logger.info("Best Hyperparameters: %s", study.best_params)
 
     return study
-
-
-def train_study_and_save(
-    model_type, model_name, X_train, y_train, X_test, y_test, file_name
-):
-    study = load_study(file_name)
-
-    train_and_save(
-        model_type, model_name, X_train, y_train, X_test, y_test, **study.best_params
-    )
 
 
 if __name__ == "__main__":

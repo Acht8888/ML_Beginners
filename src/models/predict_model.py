@@ -15,7 +15,7 @@ from sklearn.metrics import (
 
 
 # Importing modules from your project
-from utils import (
+from src.utils import (
     set_seed,
     DEFAULT_SEED,
     set_log,
@@ -30,16 +30,6 @@ set_seed()
 
 # Configure logging for better visibility in production
 logger = set_log()
-
-
-def load_model_and_predict(model, X):
-    model.eval()  # Set model to evaluation mode
-
-    with torch.no_grad():
-        outputs = model(X).squeeze()
-        predictions = (outputs > 0.5).int()  # Binary classification with 0.5 threshold
-
-    return predictions, outputs
 
 
 def calculate_metrics(y_true, y_pred, y_probs):
@@ -84,7 +74,11 @@ def evaluate_model(file_name, X_test, y_test, threshold):
     model = load_model(file_name)
 
     # Get predictions
-    y_pred, y_probs = load_model_and_predict(model, X_test)
+    model.eval()  # Set model to evaluation mode
+
+    with torch.no_grad():
+        y_probs = model(X_test).squeeze()
+        y_pred = (y_probs > threshold).int()
 
     # Calculate metrics
     metrics = calculate_metrics(y_test, y_pred, y_probs)
@@ -92,11 +86,6 @@ def evaluate_model(file_name, X_test, y_test, threshold):
     # Log metrics
     for metric_name, value in metrics.items():
         logger.info(f"{metric_name.capitalize()}: {value:.4f}")
-
-    # Define the directory where plots will be saved
-    save_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "storage", "evaluations", file_name
-    )
 
     # Save evaluation results
     save_evaluation(file_name, y_test, y_probs, y_pred)
@@ -114,8 +103,10 @@ def evaluate_model_opt_threshold(file_name, X_test, y_test):
     # Load the model
     model = load_model(file_name)
 
-    # Make predictions
-    _, y_probs = load_model_and_predict(model, X_test)
+    model.eval()  # Set model to evaluation mode
+
+    with torch.no_grad():
+        y_probs = model(X_test).squeeze()
 
     # Find the optimal threshold
     best_threshold = find_optimal_threshold(y_test, y_probs)

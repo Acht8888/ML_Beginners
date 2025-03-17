@@ -1,21 +1,42 @@
+import os
+import torch
+import optuna
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score, log_loss
-import optuna
 from optuna.samplers import TPESampler
-from utils import set_seed, DEFAULT_SEED, set_log
-import torch
+from torch.utils.data import DataLoader, TensorDataset
 
+# Importing modules from your project
+from src.utils import set_seed, DEFAULT_SEED, set_log
+
+# Set the random seed for reproducibility
 set_seed()
+
+# Configure logging for better visibility in production
 logger = set_log()
 
+
+search_space = {
+    "criterion": ["gini", "entropy"],  # Criterion choices
+    "max_depth": [2, 30],  # Max depth range
+    "min_samples_split": [2, 20],  # Min samples split range
+    "min_samples_leaf": [1, 10],  # Min samples leaf range
+}
+
+
 class DecisionTreeModel:
-    def __init__(self, criterion="gini", max_depth=None, min_samples_split=2, min_samples_leaf=1, random_state=42):
+    def __init__(
+        self,
+        criterion="gini",
+        max_depth=None,
+        min_samples_split=2,
+        min_samples_leaf=1,
+    ):
         self.model = DecisionTreeClassifier(
             criterion=criterion,
             max_depth=max_depth,
             min_samples_split=min_samples_split,
             min_samples_leaf=min_samples_leaf,
-            random_state=random_state,
         )
 
     def train(self, X_train, y_train):
@@ -39,39 +60,53 @@ class DecisionTreeModel:
 
 
 class DecisionTreeTrainer:
-    def __init__(self, criterion="gini", max_depth=None, min_samples_split=2, min_samples_leaf=1, random_state=42):
+    def __init__(
+        self,
+        criterion="gini",
+        max_depth=None,
+        min_samples_split=2,
+        min_samples_leaf=1,
+    ):
         self.criterion = criterion
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
         self.min_samples_leaf = min_samples_leaf
-        self.random_state = random_state
-        self.model = DecisionTreeModel(criterion, max_depth, min_samples_split, min_samples_leaf, random_state)
+        self.model = DecisionTreeModel(
+            criterion, max_depth, min_samples_split, min_samples_leaf
+        )
 
-    def train(self, X_train, y_train):
+    def train(self, X_train, y_train, X_val, y_val):
+        # Train the model on the entire training set
         model = self.model.train(X_train, y_train)
-        y_pred = model.predict(X_train)
-        acc = accuracy_score(y_train, y_pred)
-        losses = log_loss(y_train, model.predict_proba(X_train))
-        return model, losses
 
-    def train_optuna(self, X_train, y_train, trial):
-        criterion = trial.suggest_categorical("criterion", ["gini", "entropy"])
-        max_depth = trial.suggest_int("max_depth", 2, 30)
-        min_samples_split = trial.suggest_int("min_samples_split", 2, 20)
-        min_samples_leaf = trial.suggest_int("min_samples_leaf", 1, 10)
+        # Predict and evaluate on the training and validation sets
+        train_loss = log_loss(y_train, model.predict_proba(X_train))
+        val_loss = log_loss(y_val, model.predict_proba(X_val))
 
+        # Return the model and losses
+        return model, train_loss, val_loss
+
+    def train_optuna(self, X_train, y_train, X_val, y_val, trial):
+        criterion = trial.suggest_categorical("criterion", search_space["criterion"])
+        max_depth = trial.suggest_int(
+            "max_depth", search_space["max_depth"][0], search_space["max_depth"][1]
+        )
+        min_samples_split = trial.suggest_int(
+            "min_samples_split",
+            search_space["min_samples_split"][0],
+            search_space["min_samples_split"][1],
+        )
+        min_samples_leaf = trial.suggest_int(
+            "min_samples_leaf",
+            search_space["min_samples_leaf"][0],
+            search_space["min_samples_leaf"][1],
+        )
+
+        # Set model parameters
         self.criterion = criterion
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
         self.min_samples_leaf = min_samples_leaf
 
-        model, losses = self.train(X_train, y_train)
-        return losses
-
-    def tune_hyperparameters(self, X_train, y_train, n_trials=10):
-        sampler = TPESampler(seed=DEFAULT_SEED)
-        study = optuna.create_study(direction="minimize", sampler=sampler)
-        study.optimize(lambda trial: self.train_optuna(X_train, y_train, trial), n_trials=n_trials)
-        
-        print("Best Hyperparameters:", study.best_params)
-        best_params = study.best_params
+        _, _, val_loss = self.train(X_train, y_train, X_val, y_val)
+        return val_loss

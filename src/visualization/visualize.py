@@ -14,7 +14,7 @@ import numpy as np
 
 
 # Importing modules from your project
-from utils import (
+from src.utils import (
     set_seed,
     DEFAULT_SEED,
     set_log,
@@ -30,14 +30,6 @@ set_seed()
 logger = set_log()
 
 
-# Function to save a plot
-def save_plot(plot_filename):
-    plt.savefig(plot_filename)
-    plt.close()
-
-    logger.info(f"Plot saved as {plot_filename}")
-
-
 # Function to visualize the Optuna study optimization history
 def visualize_optimization_history(study, plot_dir):
     """
@@ -48,8 +40,8 @@ def visualize_optimization_history(study, plot_dir):
     """
     logger.info(f"Plotting optimization history for study.")
     fig = optuna.visualization.matplotlib.plot_optimization_history(study)
-    plot_filename = os.path.join(plot_dir, "st_optimization_history.png")
-    save_plot(plot_filename)
+
+    plt.show()
 
 
 # Function to visualize the parameter slice plot
@@ -62,8 +54,8 @@ def visualize_slice_plot(study, plot_dir):
     """
     logger.info(f"Plotting slice plot for study.")
     fig = optuna.visualization.matplotlib.plot_slice(study)
-    plot_filename = os.path.join(plot_dir, "st_slice_plot.png")
-    save_plot(plot_filename)
+
+    plt.show()
 
 
 # Function to visualize the parameter importance plot
@@ -76,8 +68,8 @@ def visualize_param_importance(study, plot_dir):
     """
     logger.info(f"Plotting parameter importance for study.")
     fig = optuna.visualization.matplotlib.plot_param_importances(study)
-    plot_filename = os.path.join(plot_dir, "st_parameter_importance.png")
-    save_plot(plot_filename)
+
+    plt.show()
 
 
 # Main function to visualize the Optuna study results
@@ -114,7 +106,8 @@ def visualize_confusion_matrix(true_labels, predicted_labels, plot_dir):
 
     cm_plot_filename = os.path.join(plot_dir, "ev_confusion_matrix.png")
     cm_display.plot(cmap=plt.cm.Blues)
-    save_plot(cm_plot_filename)
+
+    plt.show()
 
 
 # Function to visualize the ROC curve
@@ -165,8 +158,7 @@ def visualize_roc_curve(true_labels, probabilities_labels, plot_dir):
     plt.title("Receiver Operating Characteristic")
     plt.legend(loc="lower right")
 
-    roc_curve_filename = os.path.join(plot_dir, "ev_roc_curve.png")
-    save_plot(roc_curve_filename)
+    plt.show()
 
 
 # Function to visualize the Precision-Recall curve
@@ -197,9 +189,7 @@ def visualize_precision_recall_curve(true_labels, probabilities_labels, plot_dir
     plt.legend(loc="lower left")
     plt.grid(True)
 
-    # Save the plot
-    pr_curve_filename = os.path.join(plot_dir, "ev_precision_recall_curve.png")
-    save_plot(pr_curve_filename)
+    plt.show()
 
 
 # Main function to visualize evaluation results
@@ -224,24 +214,30 @@ def visualize_evaluate(file_name):
     visualize_precision_recall_curve(true_labels, probabilities_labels, plot_dir)
 
 
-def visualize_loss_curve(losses, plot_dir):
-    logger.info(f"Plotting loss curve.")
-    # Plot the loss curve
-    plt.plot(losses)
+def visualize_loss_curve(train_losses, val_losses, plot_dir):
+    logger.info(f"Plotting loss curves.")
+
+    # Plot the training loss and validation loss on the same plot
+    plt.plot(train_losses, label="Training Loss", color="blue")
+    plt.plot(val_losses, label="Validation Loss", color="orange")
+
+    # Labeling the plot
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
-    plt.title("Training Loss")
+    plt.title("Training and Validation Loss Curves")
 
-    # Save the plot
-    loss_curve_filename = os.path.join(plot_dir, "tr_loss_curve.png")
-    save_plot(loss_curve_filename)
+    # Adding a legend
+    plt.legend()
+
+    plt.show()
 
 
 def visualize_train(file_name):
     logger.info(f"Loading training results from file: {file_name}")
     # Load the saved evaluation results
     data = load_training(file_name)
-    losses = data["losses"]
+    train_losses = data["train_losses"]
+    val_losses = data["val_losses"]
 
     # Define the directory where the plot will be saved
     plot_dir = os.path.join(
@@ -249,7 +245,7 @@ def visualize_train(file_name):
     )
     os.makedirs(plot_dir, exist_ok=True)
 
-    visualize_loss_curve(losses, plot_dir)
+    visualize_loss_curve(train_losses, val_losses, plot_dir)
 
 
 if __name__ == "__main__":

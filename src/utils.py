@@ -7,10 +7,8 @@ import numpy as np
 import pandas as pd
 
 
-# Define the path to the model
 model_path = os.path.join(os.path.dirname(__file__), "..", "models", "experiments")
 
-# Define the path to the study
 study_path = os.path.join(os.path.dirname(__file__), "..", "storage", "studies")
 
 evaluation_path = os.path.join(
@@ -90,18 +88,19 @@ def save_evaluation(file_name, y_test, y_probs, y_pred):
     logger.info(f"Evaluation results saved to {final_evaluation_path}.")
 
 
-# Function to load evaluation results
 def load_evaluation(file_name):
     final_evaluation_path = os.path.join(evaluation_path, f"{file_name}.pkl")
     logger.info(f"Evaluation {file_name} loaded successfully.")
     return joblib.load(final_evaluation_path)
 
 
-def save_training(losses, model_type, model_name):
+def save_training(train_losses, val_losses, model_type, model_name):
     os.makedirs(training_path, exist_ok=True)
     training_filename = f"{model_type[0:2]}_{model_name}.pkl"
     final_training_path = os.path.join(training_path, training_filename)
-    joblib.dump({"losses": losses}, final_training_path)
+    joblib.dump(
+        {"train_losses": train_losses, "val_losses": val_losses}, final_training_path
+    )
     logger.info(f"Training results saved to {final_training_path}.")
 
 

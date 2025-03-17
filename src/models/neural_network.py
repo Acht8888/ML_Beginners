@@ -1,4 +1,5 @@
 import os
+import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
@@ -7,7 +8,7 @@ import sys
 
 
 # Importing modules from your project
-from utils import set_seed, DEFAULT_SEED, set_log
+from src.utils import set_seed, DEFAULT_SEED, set_log
 
 # Set the random seed for reproducibility
 set_seed()
@@ -19,14 +20,14 @@ search_space = {
     "lr": [1e-5, 1e-1],  # Log scale for learning rate
     "batch_size": [32, 128],  # Batch size range
     "hidden_size": [8, 256],  # Hidden layer size range
-    "epochs": [10, 100],  # Number of epochs range
+    "epochs": [10, 200],  # Number of epochs range
 }
 
 
 class NeuralNetworkModel(nn.Module):
-    def __init__(self, hidden_size=15):
+    def __init__(self, input_size=26, hidden_size=15):
         super(NeuralNetworkModel, self).__init__()
-        self.fc1 = nn.Linear(26, hidden_size)
+        self.fc1 = nn.Linear(input_size, hidden_size)
         self.fc2 = nn.Linear(hidden_size, hidden_size)
         self.fc3 = nn.Linear(hidden_size, 1)
         self.relu = nn.ReLU()
@@ -39,118 +40,156 @@ class NeuralNetworkModel(nn.Module):
         return x
 
 
-def train_nn(X_train, y_train, lr=0.001, batch_size=32, epochs=100, hidden_size=15):
-    """
-    Train a neural network model on the training data.
+class NeuralNetworkTrainer:
+    def __init__(
+        self,
+        input_size=26,
+        hidden_size=15,
+        lr=0.001,
+        batch_size=32,
+        epochs=100,
+    ):
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.lr = lr
+        self.batch_size = batch_size
+        self.epochs = epochs
 
-    :param X_train: Training features (Tensor).
-    :param y_train: Training labels (Tensor).
-    :param lr: Learning rate for the optimizer. Default is 0.001.
-    :param batch_size: Batch size for training. Default is 32.
-    :param epochs: Number of training epochs. Default is 100.
-    :param hidden_size: Number of neurons in the hidden layers. Default is 15.
-    :return: Trained model.
-    """
-    model = NeuralNetworkModel(hidden_size=hidden_size)
+    def create_data_loaders(self, X_train, y_train, X_val, y_val):
+        # Create DataLoader for batching
+        train_dataset = TensorDataset(X_train, y_train)
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=0,
+            worker_init_fn=lambda _: set_seed(DEFAULT_SEED),
+            drop_last=True,
+        )
 
-    # Create DataLoader for batching
-    dataset = TensorDataset(X_train, y_train)
-    train_loader = DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=0,
-        worker_init_fn=lambda _: set_seed(DEFAULT_SEED),
-        drop_last=True,
-    )
+        # Create DataLoader for validation
+        val_dataset = TensorDataset(X_val, y_val)
+        val_loader = DataLoader(
+            val_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=0,
+            worker_init_fn=lambda _: set_seed(DEFAULT_SEED),
+            drop_last=True,
+        )
 
-    # Loss function and optimizer
-    criterion = nn.BCELoss()
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+        return train_loader, val_loader
 
-    losses = []
+    def train(self, X_train, y_train, X_val, y_val):
+        model = NeuralNetworkModel(self.input_size, self.hidden_size)
+        train_loader, val_loader = self.create_data_loaders(
+            X_train, y_train, X_val, y_val
+        )
 
-    # Training loop
-    for epoch in range(epochs):
-        model.train()
-        total_loss = 0
+        # Loss function and optimizer
+        criterion = nn.BCELoss()
+        optimizer = optim.Adam(model.parameters(), lr=self.lr)
 
-        for batch_X, batch_y in train_loader:
-            optimizer.zero_grad()
+        train_losses = []  # To store training loss values
+        val_losses = []  # To store validation loss values
 
-            # Forward pass
-            outputs = model(batch_X).squeeze()
-            loss = criterion(outputs, batch_y)
+        # Training loop
+        for epoch in range(self.epochs):
+            model.train()
+            epoch_train_loss = 0
 
-            # Backward pass and optimization
-            loss.backward()
-            optimizer.step()
-            total_loss += loss.item()
+            for batch_X, batch_y in train_loader:
+                optimizer.zero_grad()
 
-        # Print progress
-        if (epoch + 1) % 10 == 0:
-            print(f"Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}")
+                # Forward pass
+                outputs = model(batch_X).squeeze()
+                loss = criterion(outputs, batch_y)
 
-        # Store loss for plotting
-        losses.append(loss.item())
+                # Backward pass and optimization
+                loss.backward()
+                optimizer.step()
+                epoch_train_loss += loss.item()
 
-    return model, losses
+            # Validation phase
+            model.eval()
+            epoch_val_loss = 0
+            with torch.no_grad():
+                for batch_X, batch_y in val_loader:
+                    outputs = model(batch_X).squeeze()
+                    loss = criterion(outputs, batch_y)
+                    epoch_val_loss += loss.item()
 
+            # Print progress
+            if (epoch + 1) % 10 == 0:
+                logger.info(
+                    f"Epoch [{epoch+1}/{self.epochs}], Train Loss: {epoch_train_loss / len(train_loader):.4f}, "
+                    f"Validation Loss: {epoch_val_loss / len(val_loader):.4f}"
+                )
 
-def train_nn_optuna(X_train, y_train, trial):
-    """
-    Optimize hyperparameters using Optuna.
+            # Store loss for plotting
+            train_losses.append(epoch_train_loss / len(train_loader))
+            val_losses.append(epoch_val_loss / len(val_loader))
 
-    :param X_train: Training features (Tensor).
-    :param y_train: Training labels (Tensor).
-    :param trial: Optuna trial object for hyperparameter tuning.
-    :return: Final loss value after training.
-    """
-    lr = trial.suggest_float("lr", search_space["lr"][0], search_space["lr"][1])
-    batch_size = trial.suggest_int(
-        "batch_size", search_space["batch_size"][0], search_space["batch_size"][1]
-    )
-    hidden_size = trial.suggest_int(
-        "hidden_size", search_space["hidden_size"][0], search_space["hidden_size"][1]
-    )
-    epochs = trial.suggest_int(
-        "epochs", search_space["epochs"][0], search_space["epochs"][1]
-    )
+        return model, train_losses, val_losses
 
-    model = NeuralNetworkModel(hidden_size=hidden_size)
+    def train_optuna(self, X_train, y_train, X_val, y_val, trial):
+        lr = trial.suggest_float("lr", search_space["lr"][0], search_space["lr"][1])
+        batch_size = trial.suggest_int(
+            "batch_size", search_space["batch_size"][0], search_space["batch_size"][1]
+        )
+        hidden_size = trial.suggest_int(
+            "hidden_size",
+            search_space["hidden_size"][0],
+            search_space["hidden_size"][1],
+        )
+        epochs = trial.suggest_int(
+            "epochs", search_space["epochs"][0], search_space["epochs"][1]
+        )
 
-    # Create DataLoader for batching
-    dataset = TensorDataset(X_train, y_train)
-    train_loader = DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=0,
-        worker_init_fn=lambda _: set_seed(DEFAULT_SEED),
-        drop_last=True,
-    )
+        model = model = NeuralNetworkModel(self.input_size, self.hidden_size)
+        self.lr = lr
+        self.batch_size = batch_size
+        self.hidden_size = hidden_size
+        self.epochs = epochs
 
-    # Loss function and optimizer
-    criterion = nn.BCELoss()
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+        train_loader, val_loader = self.create_data_loaders(
+            X_train, y_train, X_val, y_val
+        )
 
-    # Training loop
-    for epoch in range(epochs):
-        model.train()
+        # Loss function and optimizer
+        criterion = nn.BCELoss()
+        optimizer = optim.Adam(model.parameters(), lr=self.lr)
 
-        for batch_X, batch_y in train_loader:
-            optimizer.zero_grad()
+        total_val_loss = 0
 
-            # Forward pass
-            outputs = model(batch_X).squeeze()
+        # Training loop
+        for epoch in range(self.epochs):
+            model.train()
 
-            loss = criterion(outputs, batch_y)
+            for batch_X, batch_y in train_loader:
+                optimizer.zero_grad()
 
-            # Backward pass and optimization
-            loss.backward()
-            optimizer.step()
+                # Forward pass
+                outputs = model(batch_X).squeeze()
+                loss = criterion(outputs, batch_y)
 
-    return loss.item()
+                # Backward pass and optimization
+                loss.backward()
+                optimizer.step()
+
+            # Validation phase
+            model.eval()
+            epoch_val_loss = 0
+            with torch.no_grad():
+                for batch_X, batch_y in val_loader:
+                    outputs = model(batch_X).squeeze()
+                    loss = criterion(outputs, batch_y)
+                    epoch_val_loss += loss.item()
+
+            # Add epoch loss to the total loss
+            total_val_loss += epoch_val_loss
+
+        return total_val_loss / self.epochs
 
 
 if __name__ == "__main__":
