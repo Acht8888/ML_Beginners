@@ -16,8 +16,6 @@ from sklearn.metrics import (
 
 # Importing modules from your project
 from src.utils import (
-    set_seed,
-    DEFAULT_SEED,
     set_log,
     load_model,
     load_processed,
@@ -25,8 +23,6 @@ from src.utils import (
     save_prediction,
 )
 
-# Set the random seed for reproducibility
-set_seed()
 
 # Configure logging for better visibility in production
 logger = set_log()
@@ -90,6 +86,8 @@ def evaluate_model(file_name, X_test, y_test, threshold):
     # Save evaluation results
     save_evaluation(file_name, y_test, y_probs, y_pred)
 
+    return metrics
+
 
 def evaluate_model_opt_threshold(file_name, X_test, y_test):
     """
@@ -124,6 +122,8 @@ def evaluate_model_opt_threshold(file_name, X_test, y_test):
         os.path.dirname(__file__), "..", "..", "storage", "evaluations", file_name
     )
     save_evaluation(file_name, y_test, y_probs, y_pred)
+
+    return metris
 
 
 # # NOTE: WIP

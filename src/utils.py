@@ -42,9 +42,6 @@ def set_log():
     return logging.getLogger(__name__)
 
 
-# Set the random seed for reproducibility
-set_seed()
-
 # Configure logging for better visibility in production
 logger = set_log()
 

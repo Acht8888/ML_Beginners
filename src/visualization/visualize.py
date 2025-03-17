@@ -15,16 +15,11 @@ import numpy as np
 
 # Importing modules from your project
 from src.utils import (
-    set_seed,
-    DEFAULT_SEED,
     set_log,
     load_study,
     load_evaluation,
     load_training,
 )
-
-# Set the random seed for reproducibility
-set_seed()
 
 # Configure logging for better visibility in production
 logger = set_log()

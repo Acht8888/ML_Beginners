@@ -10,7 +10,6 @@ from src.models.neural_network import NeuralNetworkTrainer
 from src.models.genetic_algorithm import GeneticAlgorithmTrainer
 
 from src.utils import (
-    set_seed,
     DEFAULT_SEED,
     set_log,
     save_model,
@@ -19,8 +18,6 @@ from src.utils import (
     save_training,
 )
 
-# Set the random seed for reproducibility
-set_seed()
 
 # Configure logging for better visibility in production
 logger = set_log()
@@ -62,8 +59,11 @@ def train_and_save(model_type, model_name, X_train, y_train, X_val, y_val, **kwa
     elif model_type == "neural_network":
         trainer = NeuralNetworkTrainer(
             input_size=26,
-            hidden_size=kwargs.get("hidden_size", 0.15),
-            lr=kwargs.get("lr", 0.001),
+            hidden_size=kwargs.get("hidden_size", 15),
+            num_hidden_layers=kwargs.get("num_hidden_layers", 1),
+            dropout_rate=kwargs.get("dropout_rate", 0.5),
+            lr=kwargs.get("lr", 1e-3),
+            weight_decay=kwargs.get("weight_decay", 1e-4),
             batch_size=kwargs.get("batch_size", 32),
             epochs=kwargs.get("epochs", 100),
         )
@@ -106,7 +106,8 @@ def tune_and_save(
     X_val,
     y_val,
     n_trials,
-    direction="minimize",
+    direction,
+    search_space,
 ):
     """
     Tune hyperparameters using Optuna and save the best model.
@@ -136,6 +137,7 @@ def tune_and_save(
             y_val=y_val,
             n_trials=n_trials,
             direction=direction,
+            search_space=search_space,
         )
     elif model_type == "neural_network":
         trainer = NeuralNetworkTrainer()
@@ -147,6 +149,7 @@ def tune_and_save(
             y_val=y_val,
             n_trials=n_trials,
             direction=direction,
+            search_space=search_space,
         )
     elif model_type == "naive_bayes":
         pass
@@ -163,7 +166,7 @@ def tune_and_save(
 
 
 def tune_hyperparameters(
-    model_train_fn, X_train, y_train, X_val, y_val, n_trials=10, direction="minimize"
+    model_train_fn, X_train, y_train, X_val, y_val, n_trials, direction, search_space
 ):
     """
     Tune hyperparameters of the neural network using Optuna.
@@ -181,7 +184,12 @@ def tune_hyperparameters(
     )
     study.optimize(
         lambda trial: model_train_fn(
-            X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, trial=trial
+            X_train=X_train,
+            y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
+            trial=trial,
+            search_space=search_space,
         ),
         n_trials=n_trials,
     )
