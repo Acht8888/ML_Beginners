@@ -123,7 +123,7 @@ def evaluate_model_opt_threshold(file_name, X_test, y_test):
     )
     save_evaluation(file_name, y_test, y_probs, y_pred)
 
-    return metris
+    return metrics
 
 
 # # NOTE: WIP
