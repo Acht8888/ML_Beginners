@@ -1,0 +1,19 @@
+program: statement EOF;
+
+statement: (assignment | call | return) SM;
+assignment: ID '=' expression;
+call: ID listexpr;
+listexpr: LP list RP;
+list: expression exprtail | ;
+exprtail: CM expr exprtail | ;
+return: 'return' expression;
+
+expression: expression1 ADD expression | expression1;
+expression1: expression2 SUB expression2 | expression2;
+expression2: expression2 MUL expression3
+	   | expression2 DIV expression3
+	   | expression3;
+expression3: INTLIT | FLOATLIT | ID | call | sub-expression;
+sub-expression: LP expression RP;
+
+
