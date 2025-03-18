@@ -3,7 +3,7 @@ import sys
 from sklearn.metrics import accuracy_score
 import optuna
 from optuna.samplers import TPESampler
-
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 # Importing modules from your project
 from src.models.decision_tree import DecisionTreeTrainer
 from src.models.neural_network import NeuralNetworkTrainer
@@ -48,8 +48,8 @@ def train_and_save(model_type, model_name, X_train, y_train, X_val, y_val, **kwa
     # Select the model type and initialize it
     if model_type == "decision_tree":
         trainer = DecisionTreeTrainer(
-            criterion=kwargs.get("criterion", "gini"),
-            max_depth=kwargs.get("max_depth", None),
+            criterion=kwargs.get("entropy", "gini"),
+            max_depth=kwargs.get("max_depth", 10),
             min_samples_split=kwargs.get("min_samples_split", 2),
             min_samples_leaf=kwargs.get("min_samples_leaf", 1),
         )

@@ -1,3 +1,4 @@
+'''
 import torch
 import os
 import sys
@@ -181,3 +182,92 @@ def predict_model(model_name, file_name, threshold):
 if __name__ == "__main__":
     src_path = os.path.join(os.path.dirname(__file__), "..")
     sys.path.append(src_path)
+'''
+import os
+import sys
+import numpy as np
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_auc_score,
+    roc_curve,
+)
+from joblib import load
+
+# Importing modules from your project
+from src.utils import (
+    set_seed,
+    set_log,
+    load_processed,
+    save_evaluation,
+    save_prediction,
+)
+
+# Set the random seed for reproducibility
+set_seed()
+
+# Configure logging for better visibility in production
+logger = set_log()
+
+def calculate_metrics(y_true, y_pred, y_probs):
+    accuracy = accuracy_score(y_true, y_pred)
+    precision = precision_score(y_true, y_pred)
+    recall = recall_score(y_true, y_pred)
+    f1 = f1_score(y_true, y_pred)
+    roc_auc = roc_auc_score(y_true, y_probs)
+
+    return {
+        "accuracy": accuracy,
+        "precision": precision,
+        "recall": recall,
+        "f1": f1,
+        "roc_auc": roc_auc,
+    }
+
+def find_optimal_threshold(y_test, y_probs):
+    fpr, tpr, thresholds = roc_curve(y_test, y_probs)
+    j_scores = tpr - fpr  # Youden's J statistic
+    
+    best_threshold_index = np.argmax(j_scores)
+    best_threshold = thresholds[best_threshold_index]
+    
+    logger.info(f"Optimal Threshold (Maximizing Youden's J): {best_threshold:.4f}")
+    return best_threshold
+
+def evaluate_model(file_name, X_test, y_test, threshold):
+    model = load(file_name)
+    y_probs = model.predict_proba(X_test)[:, 1]  # Probability of class 1
+    y_pred = (y_probs > threshold).astype(int)
+    
+    metrics = calculate_metrics(y_test, y_pred, y_probs)
+    for metric_name, value in metrics.items():
+        logger.info(f"{metric_name.capitalize()}: {value:.4f}")
+    
+    save_evaluation(file_name, y_test, y_probs, y_pred)
+
+def evaluate_model_opt_threshold(file_name, X_test, y_test):
+    model = load(file_name)
+    y_probs = model.predict_proba(X_test)[:, 1]
+    best_threshold = find_optimal_threshold(y_test, y_probs)
+    y_pred = (y_probs > best_threshold).astype(int)
+    
+    metrics = calculate_metrics(y_test, y_pred, y_probs)
+    for metric_name, value in metrics.items():
+        logger.info(f"{metric_name.capitalize()}: {value:.4f}")
+    
+    save_evaluation(file_name, y_test, y_probs, y_pred)
+
+def predict_model(model_name, file_name, threshold):
+    model = load(model_name)
+    processed_data = load_processed(file_name)
+    processed_data = processed_data.drop(columns=["Churn"], errors="ignore")
+    
+    y_probs = model.predict_proba(processed_data)[:, 1]
+    predicted = (y_probs > threshold).astype(int)
+    
+    processed_data["Predicted Churn"] = predicted
+    save_prediction(processed_data, file_name)
