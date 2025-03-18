@@ -276,3 +276,6 @@ def cross_validation(model_type, X, y, k_folds, threshold, **kwargs):
         f"Average Metrics - Accuracy: {avg_metrics['accuracy']:.4f}, Precision: {avg_metrics['precision']:.4f}, Recall: {avg_metrics['recall']:.4f}, F1: {avg_metrics['f1']:.4f}, ROC AUC: {avg_metrics['roc_auc']:.4f}"
     )
     return avg_metrics
+
+
+#
