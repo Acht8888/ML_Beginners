@@ -3,7 +3,6 @@ import sys
 from sklearn.metrics import accuracy_score
 import optuna
 from optuna.samplers import TPESampler
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 # Importing modules from your project
 from src.models.decision_tree import DecisionTreeTrainer
 from src.models.neural_network import NeuralNetworkTrainer
@@ -125,10 +124,7 @@ def tune_and_save(
 
     # Select the model
     if model_type == "decision_tree":
-        trainer = DecisionTreeTrainer()
-        trainer.train_grid_search(X_train, y_train) 
-        study = trainer.post_pruning(X_train, y_train)
-        
+       pass
     elif model_type == "neural_network":
         trainer = NeuralNetworkTrainer()
         study = tune_hyperparameters(

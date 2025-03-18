@@ -1,8 +1,6 @@
 import os
-import sys
 import numpy as np
 import torch
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 from sklearn.metrics import (
     accuracy_score,
     precision_score,

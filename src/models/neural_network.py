@@ -5,7 +5,6 @@ import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
 
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 # Importing modules from your project
 from src.utils import set_seed, DEFAULT_SEED, set_log
