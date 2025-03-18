@@ -3,7 +3,7 @@ import sys
 from sklearn.metrics import accuracy_score
 import optuna
 from optuna.samplers import TPESampler
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 # Importing modules from your project
 from src.models.decision_tree import DecisionTreeTrainer
 from src.models.neural_network import NeuralNetworkTrainer
@@ -47,18 +47,7 @@ def train_and_save(model_type, model_name, X_train, y_train, X_val, y_val, **kwa
 
     # Select the model type and initialize it
     if model_type == "decision_tree":
-        trainer = DecisionTreeTrainer(
-            criterion=kwargs.get("entropy", "gini"),
-            max_depth=kwargs.get("max_depth", 10),
-            min_samples_split=kwargs.get("min_samples_split", 2),
-            min_samples_leaf=kwargs.get("min_samples_leaf", 1),
-        )
-        model, train_losses, val_losses = trainer.train(
-            X_train=X_train,
-            y_train=y_train,
-            X_val=X_val,
-            y_val=y_val,
-        )
+        pass
     elif model_type == "neural_network":
         trainer = NeuralNetworkTrainer(
             input_size=26,
@@ -97,6 +86,15 @@ def train_study_and_save(
         model_type, model_name, X_train, y_train, X_val, y_val, **study.best_params
     )
 
+def train_study_and_save_de(model_name, X_train, y_train):
+    """
+    Sử dụng GridSearch + Post-Pruning để tìm tham số tốt nhất và huấn luyện mô hình
+    """
+    trainer = DecisionTreeTrainer()
+    trainer.train_grid_search(X_train, y_train)  # Chạy Grid Search nhưng không lưu best_params
+    study = trainer.post_pruning(X_train, y_train)
+    
+    save_model(study, "decision_tree", model_name)
 
 def tune_and_save(
     model_type,
@@ -128,15 +126,9 @@ def tune_and_save(
     # Select the model
     if model_type == "decision_tree":
         trainer = DecisionTreeTrainer()
-        study = tune_hyperparameters(
-            model_train_fn=trainer.train_optuna,
-            X_train=X_train,
-            y_train=y_train,
-            X_val=X_val,
-            y_val=y_val,
-            n_trials=n_trials,
-            direction=direction,
-        )
+        trainer.train_grid_search(X_train, y_train) 
+        study = trainer.post_pruning(X_train, y_train)
+        
     elif model_type == "neural_network":
         trainer = NeuralNetworkTrainer()
         study = tune_hyperparameters(
@@ -160,6 +152,7 @@ def tune_and_save(
 
     if study:
         save_study(study, model_type, model_name)
+
 
 
 def tune_hyperparameters(

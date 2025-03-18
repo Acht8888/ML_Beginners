@@ -1,11 +1,11 @@
 import argparse
 import os
 import pandas as pd
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 import torch
 from sklearn.model_selection import train_test_split
 import numpy as np
-import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 from src.utils import set_seed, DEFAULT_SEED, set_log
 
 # Set the random seed for reproducibility
@@ -15,7 +15,7 @@ set_seed()
 logger = set_log()
 
 
-def create_dataset(file_name, return_numpy=False):
+def create_dataset(file_name):
     """
     Tạo dataset từ file CSV và chuyển đổi sang kiểu dữ liệu phù hợp.
 
@@ -42,7 +42,7 @@ def create_dataset(file_name, return_numpy=False):
         X_temp, y_temp, test_size=0.5, random_state=DEFAULT_SEED
     )
 
-    if return_numpy:
+    '''if return_numpy
         # Trả về NumPy arrays cho Decision Tree
         return (
             X_train.astype(np.float32),
@@ -52,9 +52,9 @@ def create_dataset(file_name, return_numpy=False):
             y_val.astype(np.int64),
             y_test.astype(np.int64),
         )
-    else:
+    else:'''
         # Trả về PyTorch Tensors cho Neural Network
-        return (
+    return (
             torch.tensor(X_train, dtype=torch.float32),
             torch.tensor(X_val, dtype=torch.float32),
             torch.tensor(X_test, dtype=torch.float32),
@@ -63,4 +63,4 @@ def create_dataset(file_name, return_numpy=False):
             torch.tensor(y_test, dtype=torch.long),
         )
 
-# Gọi hàm đúng với yêu cầu
+

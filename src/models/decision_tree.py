@@ -76,31 +76,21 @@ class DecisionTreeTrainer:
         # Trả về model thay vì self.model
         return model, train_loss, val_loss
 
-    def train_grid_search(self, X_train, y_train, X_val, y_val):
+    def train_grid_search(self, X_train, y_train):
         grid_search = GridSearchCV(
-            DecisionTreeClassifier(random_state=42),
-            PARAM_GRID,
-            cv=5,
-            scoring="accuracy"
+            DecisionTreeClassifier(random_state=42), PARAM_GRID, cv=5, scoring="accuracy"
         )
         grid_search.fit(X_train, y_train)
         self.best_params = grid_search.best_params_
-
         logger.info(f"Best Parameters: {self.best_params}")
-
-        # Huấn luyện mô hình với tham số tốt nhất
-        model = DecisionTreeModel(**self.best_params)
-        model.train(X_train, y_train)
-
-        # Trả về model thay vì self.model
-        return model
+        return self.best_params
 
     def post_pruning(self, X_train, y_train):
         if not self.best_params:
             raise ValueError("Cần chạy GridSearch trước khi post-pruning!")
 
-        model = DecisionTreeModel(**self.best_params)
-        path = model.model.cost_complexity_pruning_path(X_train, y_train)
+        model = DecisionTreeClassifier(**self.best_params, random_state=42)
+        path = model.cost_complexity_pruning_path(X_train, y_train)
         ccp_alphas = path.ccp_alphas[:-1]
         best_score = -np.inf
 
@@ -111,10 +101,8 @@ class DecisionTreeTrainer:
             if score > best_score:
                 best_score = score
                 self.best_alpha = alpha
-                model = prune_model
+                best_model = prune_model
 
-        model.fit(X_train, y_train)
+        best_model.fit(X_train, y_train)
         logger.info(f"Best ccp_alpha: {self.best_alpha}")
-
-        # Trả về model thay vì self.model
-        return model
+        return best_model
