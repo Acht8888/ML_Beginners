@@ -15,17 +15,23 @@ import numpy as np
 
 # Importing modules from your project
 from src.utils import (
+<<<<<<< HEAD
     set_seed,
     DEFAULT_SEED,
+=======
+>>>>>>> main
     set_log,
     load_study,
     load_evaluation,
     load_training,
 )
 
+<<<<<<< HEAD
 # Set the random seed for reproducibility
 set_seed()
 
+=======
+>>>>>>> main
 # Configure logging for better visibility in production
 logger = set_log()
 
@@ -246,8 +252,11 @@ def visualize_train(file_name):
     os.makedirs(plot_dir, exist_ok=True)
 
     visualize_loss_curve(train_losses, val_losses, plot_dir)
+<<<<<<< HEAD
 
 
 if __name__ == "__main__":
     src_path = os.path.join(os.path.dirname(__file__), "..")
     sys.path.append(src_path)
+=======
+>>>>>>> main

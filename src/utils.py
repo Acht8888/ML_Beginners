@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 
+=======
+>>>>>>> main
 import os
 import torch
 import joblib
@@ -43,14 +46,18 @@ def set_log():
     return logging.getLogger(__name__)
 
 
+<<<<<<< HEAD
 # Set the random seed for reproducibility
 set_seed()
 
+=======
+>>>>>>> main
 # Configure logging for better visibility in production
 logger = set_log()
 
 
 def save_model(model, model_type, model_name):
+<<<<<<< HEAD
     if model_type == "decision_tree":
         model_filename = f"{model_type[0:2]}_{model_name}.pkl"
         final_model_path = os.path.join(model_path, model_filename)
@@ -72,6 +79,19 @@ def load_model(file_name):
        model = torch.load(final_model_path, weights_only=False)
        model.eval()
        logger.info(f"Model {file_name} loaded successfully.")
+=======
+    model_filename = f"{model_type[0:2]}_{model_name}.pth"
+    final_model_path = os.path.join(model_path, model_filename)
+    torch.save(model, final_model_path)
+    logger.info(f"Model saved to {final_model_path}")
+
+
+def load_model(file_name):
+    final_model_path = os.path.join(model_path, f"{file_name}.pth")
+    model = torch.load(final_model_path, weights_only=False)
+    model.eval()
+    logger.info(f"Model {file_name} loaded successfully.")
+>>>>>>> main
     return model
 
 

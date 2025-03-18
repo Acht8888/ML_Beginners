@@ -3,13 +3,28 @@ import sys
 from sklearn.metrics import accuracy_score
 import optuna
 from optuna.samplers import TPESampler
+<<<<<<< HEAD
+=======
+from sklearn.model_selection import KFold
+
+>>>>>>> main
 # Importing modules from your project
 from src.models.decision_tree import DecisionTreeTrainer
 from src.models.neural_network import NeuralNetworkTrainer
 from src.models.genetic_algorithm import GeneticAlgorithmTrainer
+<<<<<<< HEAD
 
 from src.utils import (
     set_seed,
+=======
+from src.models.predict_model import (
+    evaluate_model_2,
+    evaluate_model_opt_threshold,
+    predict_model,
+)
+
+from src.utils import (
+>>>>>>> main
     DEFAULT_SEED,
     set_log,
     save_model,
@@ -18,8 +33,11 @@ from src.utils import (
     save_training,
 )
 
+<<<<<<< HEAD
 # Set the random seed for reproducibility
 set_seed()
+=======
+>>>>>>> main
 
 # Configure logging for better visibility in production
 logger = set_log()
@@ -46,12 +64,35 @@ def train_and_save(model_type, model_name, X_train, y_train, X_val, y_val, **kwa
 
     # Select the model type and initialize it
     if model_type == "decision_tree":
+<<<<<<< HEAD
         pass
     elif model_type == "neural_network":
         trainer = NeuralNetworkTrainer(
             input_size=26,
             hidden_size=kwargs.get("hidden_size", 0.15),
             lr=kwargs.get("lr", 0.001),
+=======
+        trainer = DecisionTreeTrainer(
+            criterion=kwargs.get("criterion", "gini"),
+            max_depth=kwargs.get("max_depth", None),
+            min_samples_split=kwargs.get("min_samples_split", 2),
+            min_samples_leaf=kwargs.get("min_samples_leaf", 1),
+        )
+        model, train_losses, val_losses = trainer.train(
+            X_train=X_train,
+            y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
+        )
+    elif model_type == "neural_network":
+        trainer = NeuralNetworkTrainer(
+            input_size=26,
+            hidden_size=kwargs.get("hidden_size", 15),
+            num_hidden_layers=kwargs.get("num_hidden_layers", 1),
+            dropout_rate=kwargs.get("dropout_rate", 0.5),
+            lr=kwargs.get("lr", 1e-3),
+            weight_decay=kwargs.get("weight_decay", 1e-4),
+>>>>>>> main
             batch_size=kwargs.get("batch_size", 32),
             epochs=kwargs.get("epochs", 100),
         )
@@ -85,6 +126,7 @@ def train_study_and_save(
         model_type, model_name, X_train, y_train, X_val, y_val, **study.best_params
     )
 
+<<<<<<< HEAD
 def train_study_and_save_de(model_name, X_train, y_train):
     """
     Sử dụng GridSearch + Post-Pruning để tìm tham số tốt nhất và huấn luyện mô hình
@@ -94,6 +136,8 @@ def train_study_and_save_de(model_name, X_train, y_train):
     study = trainer.post_pruning(X_train, y_train)
     
     save_model(study, "decision_tree", model_name)
+=======
+>>>>>>> main
 
 def tune_and_save(
     model_type,
@@ -103,7 +147,12 @@ def tune_and_save(
     X_val,
     y_val,
     n_trials,
+<<<<<<< HEAD
     direction="minimize",
+=======
+    direction,
+    search_space,
+>>>>>>> main
 ):
     """
     Tune hyperparameters using Optuna and save the best model.
@@ -124,7 +173,21 @@ def tune_and_save(
 
     # Select the model
     if model_type == "decision_tree":
+<<<<<<< HEAD
        pass
+=======
+        trainer = DecisionTreeTrainer()
+        study = tune_hyperparameters(
+            model_train_fn=trainer.train_optuna,
+            X_train=X_train,
+            y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
+            n_trials=n_trials,
+            direction=direction,
+            search_space=search_space,
+        )
+>>>>>>> main
     elif model_type == "neural_network":
         trainer = NeuralNetworkTrainer()
         study = tune_hyperparameters(
@@ -135,6 +198,10 @@ def tune_and_save(
             y_val=y_val,
             n_trials=n_trials,
             direction=direction,
+<<<<<<< HEAD
+=======
+            search_space=search_space,
+>>>>>>> main
         )
     elif model_type == "naive_bayes":
         pass
@@ -150,9 +217,14 @@ def tune_and_save(
         save_study(study, model_type, model_name)
 
 
+<<<<<<< HEAD
 
 def tune_hyperparameters(
     model_train_fn, X_train, y_train, X_val, y_val, n_trials=10, direction="minimize"
+=======
+def tune_hyperparameters(
+    model_train_fn, X_train, y_train, X_val, y_val, n_trials, direction, search_space
+>>>>>>> main
 ):
     """
     Tune hyperparameters of the neural network using Optuna.
@@ -170,7 +242,16 @@ def tune_hyperparameters(
     )
     study.optimize(
         lambda trial: model_train_fn(
+<<<<<<< HEAD
             X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, trial=trial
+=======
+            X_train=X_train,
+            y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
+            trial=trial,
+            search_space=search_space,
+>>>>>>> main
         ),
         n_trials=n_trials,
     )
@@ -180,6 +261,83 @@ def tune_hyperparameters(
     return study
 
 
+<<<<<<< HEAD
 if __name__ == "__main__":
     src_path = os.path.join(os.path.dirname(__file__), "..")
     sys.path.append(src_path)
+=======
+def cross_validation(model_type, X, y, k_folds, threshold, **kwargs):
+    kf = KFold(n_splits=k_folds, shuffle=True, random_state=DEFAULT_SEED)
+    metrics_list = {
+        "accuracy": [],
+        "precision": [],
+        "recall": [],
+        "f1": [],
+        "roc_auc": [],
+    }
+
+    if model_type == "decision_tree":
+        pass
+    elif model_type == "neural_network":
+        trainer = NeuralNetworkTrainer(
+            input_size=26,
+            hidden_size=kwargs.get("hidden_size", 15),
+            num_hidden_layers=kwargs.get("num_hidden_layers", 1),
+            dropout_rate=kwargs.get("dropout_rate", 0.5),
+            lr=kwargs.get("lr", 1e-3),
+            weight_decay=kwargs.get("weight_decay", 1e-4),
+            batch_size=kwargs.get("batch_size", 32),
+            epochs=kwargs.get("epochs", 100),
+        )
+
+    elif model_type == "naive_bayes":
+        pass
+    elif model_type == "genetic_algorithm":
+        pass
+    elif model_type == "graphical_model":
+        pass
+    else:
+        logger.error(f"Model '{model_type}' not recognized!")
+        raise ValueError(f"Model '{model_type}' not recognized!")
+
+    for fold, (train_index, val_index) in enumerate(kf.split(X)):
+        logger.info(f"Evaluating fold {fold + 1}/{k_folds}")
+
+        # Split the data into train and validation for this fold
+        X_train, X_val = X[train_index], X[val_index]
+        y_train, y_val = y[train_index], y[val_index]
+
+        model, train_losses, val_losses = trainer.train(
+            X_train=X_train,
+            y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
+        )
+
+        # Evaluate model
+        metrics = evaluate_model_2(model, X_val, y_val, threshold)
+        metrics_list["accuracy"].append(metrics["accuracy"])
+        metrics_list["precision"].append(metrics["precision"])
+        metrics_list["recall"].append(metrics["recall"])
+        metrics_list["f1"].append(metrics["f1"])
+        metrics_list["roc_auc"].append(metrics["roc_auc"])
+
+        # Log metrics for this fold
+        logger.info(
+            f"Fold {fold + 1} - Accuracy: {metrics["accuracy"]:.4f}, Precision: {metrics["precision"]:.4f}, Recall: {metrics["recall"]:.4f}, F1: {metrics["f1"]:.4f}, ROC AUC: {metrics["roc_auc"]:.4f}"
+        )
+
+    # Calculate average metrics across all folds
+    avg_metrics = {
+        metric: sum(values) / k_folds for metric, values in metrics_list.items()
+    }
+
+    # Log averaged metrics
+    logger.info(
+        f"Average Metrics - Accuracy: {avg_metrics['accuracy']:.4f}, Precision: {avg_metrics['precision']:.4f}, Recall: {avg_metrics['recall']:.4f}, F1: {avg_metrics['f1']:.4f}, ROC AUC: {avg_metrics['roc_auc']:.4f}"
+    )
+    return avg_metrics
+
+
+# Testing Again
+>>>>>>> main
