@@ -15,3 +15,17 @@ The core unit of a neural network is the artificial neuron. Each neuron takes in
 For customer churn prediction, neural networks are particularly useful because they can capture complex patterns in customer behavior, contract details, and service usage that might not be easily identified by simpler models. The network uses activation functions like ReLU (Rectified Linear Unit) in the hidden layers to introduce non-linearity and sigmoid in the output layer to produce probabilities representing the likelihood of customer churn. The loss function typically used for training is binary cross-entropy, which measures how far the predicted values are from the actual values and helps guide the model’s learning.\\
 
 To prevent overfitting and improve the model’s ability to generalize to new data, regularization techniques such as dropout and weight decay are often used. Additionally, hyperparameter tuning plays a critical role in optimizing the model’s performance. This includes selecting the right number of hidden layers, the number of neurons in each layer, the learning rate, and the batch size. By training on historical customer data and evaluating the model’s performance using metrics like precision, recall, F1-score, and AUC-ROC, the neural network can effectively predict the likelihood of a customer churning, which provides valuable insights for business decision-making. 
+\subsection{Naive Bayes}
+Naive Bayes is a probabilistic classifier based on Bayes' Theorem, which calculates the probability of a class given a set of features. The "naive" assumption is that all features are independent of each other given the class label. This assumption simplifies the computation significantly, making Naive Bayes a highly efficient algorithm for large datasets. In the context of customer churn prediction, each customer attribute — such as contract type, monthly charges, or tenure — is treated as an independent variable contributing to the likelihood of churn.\\
+
+\begin{figure}[hbt!]
+    \centering
+    \includegraphics[width=1\linewidth]{Images/3.3b.png}
+    \caption{Naive Bayes Algorithm}
+    \label{fig:enter-label}
+\end{figure}
+
+
+The training process involves estimating the prior probabilities of each class (churn vs. no churn) and the conditional probabilities of each feature given the class. During prediction, Naive Bayes calculates the posterior probability for each class by combining these estimates and assigns the class with the highest probability to each instance. The model's simplicity makes it robust to small datasets and less prone to overfitting, although its performance can be affected if the independence assumption is strongly violated.\\
+
+For this study, the Categorical Naive Bayes variant was employed due to the predominantly categorical nature of the Telco dataset. The model was tuned to optimize the smoothing parameter, which handles zero probabilities for unseen feature-class combinations. Despite its simplicity, Naive Bayes provided quick predictions and valuable insights into the relationships between individual features and the likelihood of churn.
